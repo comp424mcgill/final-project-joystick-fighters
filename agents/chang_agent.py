@@ -32,7 +32,7 @@ class ChangAgent(Agent):
     
     # check if the game ends
     # copied from world -> check_endgame
-    def check_endgame(self, board):
+    def check_endgame(self, board, my_pos, adv_pos):
         father = dict()
         board_size = board.shape[0]
         for r in range(board_size):
@@ -61,10 +61,15 @@ class ChangAgent(Agent):
             for c in range(board_size):
                 find((r, c))
         
-        p0_r = find(tuple(self.p0_pos))
-        p1_r = find(rutple(self.p1))
-                    
-        return True
+        p0_r = find(tuple(self.my_pos))
+        p1_r = find(tuple(self.adv_pos))
+        p0_score = list(father.values()).count(p0_r)
+        p1_score = list(father.values()).count(p1_r)
+        if p0_r == p1_r:
+            return False, p0_score, p1_score
+        else:
+            return True, p0_score, p1_score
+
     
     # find all possible steps given current board
     def all_steps():
