@@ -20,6 +20,59 @@ class ChangAgent(Agent):
             "d": 2,
             "l": 3,
         }
+        self.moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
+        
+    # part of minimax algorithm
+    def minimax_decision():
+        return
+    
+    # part of minimax algorithm
+    def minimax_value():
+        return
+    
+    # check if the game ends
+    # copied from world -> check_endgame
+    def check_endgame(self, board):
+        father = dict()
+        board_size = board.shape[0]
+        for r in range(board_size):
+            for c in range(board_size):
+                father[(r, c)] = (r, c)
+        
+        def find(pos):
+            if father[pos] != pos:
+                father[pos] = find(father[pos])
+            return father[pos]
+        
+        def union(pos1, pos2):
+            father[pos1] = pos2
+            
+        for r in range(board_size):
+            for c in range(board_size):
+                for dir, move in enumerate(self.moves[1:3]):
+                    if board[r, c, dir+1]:
+                        continue
+                    pos_a = find((r, c))
+                    pos_b = find(r+move[0], c+move[1])
+                    if pos_a != pos_b:
+                        union(pos_a, pos_b)
+                        
+        for r in range(board_size):
+            for c in range(board_size):
+                find((r, c))
+        
+        p0_r = find(tuple(self.p0_pos))
+        p1_r = find(rutple(self.p1))
+                    
+        return True
+    
+    # find all possible steps given current board
+    def all_steps():
+        return
+    
+    # find a list of successor board given current board
+    def successors():
+        return
 
     def step(self, chess_board, my_pos, adv_pos, max_step):
         """
@@ -40,24 +93,6 @@ class ChangAgent(Agent):
 
         return my_pos, self.dir_map["u"]
     
-    # part of minimax algorithm
-    def minimax_decision():
-        return
     
-    # part of minimax algorithm
-    def minimax_value():
-        return
-    
-    # check if the game ends
-    def check_endgame():
-        return True
-    
-    # find all possible steps given current board
-    def all_steps():
-        return
-    
-    # find a list of successor board given current board
-    def successors():
-        return
     
     
