@@ -82,252 +82,71 @@ class ChangAgent(Agent):
         return board
     
     
+    def check_valid_step(self, board, start_pos, end_pos, barrier_dir, adv_pos):
+        """
+        Check if the step the agent takes is valid (reachable and within max steps).
+
+        Parameters
+        ----------
+        start_pos : tuple
+            The start position of the agent.
+        end_pos : np.ndarray
+            The end position of the agent.
+        barrier_dir : int
+            The direction of the barrier.
+        """
+        # Endpoint already has barrier or is boarder
+        r, c = end_pos
+        if board[r, c, barrier_dir]:
+            return False
+        if np.array_equal(start_pos, end_pos):
+            return True
+
+        # Get position of the adversary
+        # adv_pos = self.p0_pos if self.turn else self.p1_pos
+        
+        max_step = (board.shape[0] + 1) // 2
+
+        # BFS
+        state_queue = [(start_pos, 0)]
+        visited = {tuple(start_pos)}
+        is_reached = False
+        while state_queue and not is_reached:
+            cur_pos, cur_step = state_queue.pop(0)
+            r, c = cur_pos
+            if cur_step == max_step:
+                break
+            for dir, move in enumerate(self.moves):
+                if board[r, c, dir]:
+                    continue
+
+                next_pos = cur_pos + move
+                if np.array_equal(next_pos, adv_pos) or tuple(next_pos) in visited:
+                    continue
+                if np.array_equal(next_pos, end_pos):
+                    is_reached = True
+                    break
+
+                visited.add(tuple(next_pos))
+                state_queue.append((next_pos, cur_step + 1))
+
+        return is_reached
+    
+    
     # find all possible steps given current board
     def all_steps(self, board, my_pos, adv_pos, max_step):
-        x1, y1 = my_pos
-        x2, y2 = adv_pos
-        b = board.copy()
+        list_step = []
         board_size = board.shape[0]
-        lx, ly, lb = [], [], []
-        ub = np.maximum(x1 - max_step, 0)
-        rb = np.minimum(y1 + max_step, board_size-1)
-        db = np.minimum(x1 + max_step, board_size-1)
-        lb = np.maximum(y1 - max_step, 0)
-        if x1!=x2 and y1!=y2: # case adv is not on our path
-            # iterate through current position to each boundary
-            # if there is no barrier add to the list
-
-            for i in range(x1-1, ub-1, -1): # direction: up
-                if not(board[i, y1, 2]):
-                    for j in range(4):
-                        if not(b[i, y1, j]):
-                            b = self.set_barrier(b, i, y1, j)
-                            lx.append(i)
-                            ly.append(y1)
-                            lb.append(j)
-                else:
-                    break
-            
-            for i in range(y1+1, rb+1, 1): # direction； right
-                if not(board[x1, i, 3]):
-                    for j in range(4):
-                        if not(b[x1, i, j]):
-                            b = self.set_barrier(b, x1, i ,j)
-                            lx.append(x1)
-                            ly.append(i)
-                            lb.append(j)
-                else:
-                    break
-                            
-            for i in range(x1+1, db+1, 1): # direction: down
-                if not(board[i, y1, 0]):
-                    for j in range(4):
-                        if not(b[i, y1, j]):
-                            b = self.set_barrier(b, i, y1, j)
-                            lx.append(i)
-                            ly.append(y1)
-                            lb.append(j)
-                else:
-                    break
-            
-            for i in range(y1-1, lb-1, -1): # direction left
-                if not(board[x1, i, 1]):
-                    for j in range(4):
-                        if not(b[x1, i, j]):
-                            b = self.set_barrier(b, x1, i, j)
-                            lx.append(x1)
-                            ly.append(i)
-                            lb.append(j)
-                else:
-                    break
-                
-        elif x1==x2: # case adv is on the same row
-            if y1>y2: # adv is on the left side
-                for i in range(x1-1, ub-1, -1): # direction: up
-                    if not(board[i, y1, 2]):
-                        for j in range(4):
-                            if not(b[i, y1, j]):
-                                b = self.set_barrier(b, i, y1, j)
-                                lx.append(i)
-                                ly.append(y1)
-                                lb.append(j)
-                    else:
-                        break
-            
-                for i in range(y1+1, rb+1, 1): # direction； right
-                    if not(board[x1, i, 3]):
-                        for j in range(4):
-                            if not(b[x1, i, j]):
-                                b = self.set_barrier(b, x1, i ,j)
-                                lx.append(x1)
-                                ly.append(i)
-                                lb.append(j)
-                    else:
-                        break
-                            
-                for i in range(x1+1, db+1, 1): # direction: down
-                    if not(board[i, y1, 0]):
-                        for j in range(4):
-                            if not(b[i, y1, j]):
-                                b = self.set_barrier(b, i, y1, j)
-                                lx.append(i)
-                                ly.append(y1)
-                                lb.append(j)
-                    else:
-                        break
-            
-                for i in range(y1-1, lb-1, -1): # direction left
-                    if not(board[x1, i, 1]) and y2!=i:
-                        for j in range(4):
-                            if not(b[x1, i, j]):
-                                b = self.set_barrier(b, x1, i, j)
-                                lx.append(x1)
-                                ly.append(i)
-                                lb.append(j)
-                    else:
-                        break
-                
-            else: # adv is on the right
-                for i in range(x1-1, ub-1, -1): # direction: up
-                    if not(board[i, y1, 2]):
-                        for j in range(4):
-                            if not(b[i, y1, j]):
-                                b = self.set_barrier(b, i, y1, j)
-                                lx.append(i)
-                                ly.append(y1)
-                                lb.append(j)
-                    else:
-                        break
-            
-                for i in range(y1+1, rb+1, 1): # direction； right
-                    if not(board[x1, i, 3]) and y2!=i:
-                        for j in range(4):
-                            if not(b[x1, i, j]):
-                                b = self.set_barrier(b, x1, i ,j)
-                                lx.append(x1)
-                                ly.append(i)
-                                lb.append(j)
-                    else:
-                        break
-                            
-                for i in range(x1+1, db+1, 1): # direction: down
-                    if not(board[i, y1, 0]):
-                        for j in range(4):
-                            if not(b[i, y1, j]):
-                                b = self.set_barrier(b, i, y1, j)
-                                lx.append(i)
-                                ly.append(y1)
-                                lb.append(j)
-                    else:
-                        break
-            
-                for i in range(y1-1, lb-1, -1): # direction left
-                    if not(board[x1, i, 1]):
-                        for j in range(4):
-                            if not(b[x1, i, j]):
-                                b = self.set_barrier(b, x1, i, j)
-                                lx.append(x1)
-                                ly.append(i)
-                                lb.append(j)
-                    else:
-                        break
-                    
-        else: # case adv is on the same column
-            if x1>x2: # adv is on top
-                for i in range(x1-1, ub-1, -1): # direction: up
-                    if not(board[i, y1, 2]) and x2!=i:
-                        for j in range(4):
-                            if not(b[i, y1, j]):
-                                b = self.set_barrier(b, i, y1, j)
-                                lx.append(i)
-                                ly.append(y1)
-                                lb.append(j)
-                    else:
-                        break
-            
-                for i in range(y1+1, rb+1, 1): # direction； right
-                    if not(board[x1, i, 3]):
-                        for j in range(4):
-                            if not(b[x1, i, j]):
-                                b = self.set_barrier(b, x1, i ,j)
-                                lx.append(x1)
-                                ly.append(i)
-                                lb.append(j)
-                    else:
-                        break
-                            
-                for i in range(x1+1, db+1, 1): # direction: down
-                    if not(board[i, y1, 0]):
-                        for j in range(4):
-                            if not(b[i, y1, j]):
-                                b = self.set_barrier(b, i, y1, j)
-                                lx.append(i)
-                                ly.append(y1)
-                                lb.append(j)
-                    else:
-                        break
-            
-                for i in range(y1-1, lb-1, -1): # direction left
-                    if not(board[x1, i, 1]):
-                        for j in range(4):
-                            if not(b[x1, i, j]):
-                                b = self.set_barrier(b, x1, i, j)
-                                lx.append(x1)
-                                ly.append(i)
-                                lb.append(j)
-                    else:
-                        break
-                
-            else: # adv is under us
-                for i in range(x1-1, ub-1, -1): # direction: up
-                    if not(board[i, y1, 2]):
-                        for j in range(4):
-                            if not(b[i, y1, j]):
-                                b = self.set_barrier(b, i, y1, j)
-                                lx.append(i)
-                                ly.append(y1)
-                                lb.append(j)
-                    else:
-                        break
-            
-                for i in range(y1+1, rb+1, 1): # direction； right
-                    if not(board[x1, i, 3]):
-                        for j in range(4):
-                            if not(b[x1, i, j]):
-                                b = self.set_barrier(b, x1, i ,j)
-                                lx.append(x1)
-                                ly.append(i)
-                                lb.append(j)
-                    else:
-                        break
-                            
-                for i in range(x1+1, db+1, 1): # direction: down
-                    if not(board[i, y1, 0]) and x2!=i:
-                        for j in range(4):
-                            if not(b[i, y1, j]):
-                                b = self.set_barrier(b, i, y1, j)
-                                lx.append(i)
-                                ly.append(y1)
-                                lb.append(j)
-                    else:
-                        break
-            
-                for i in range(y1-1, lb-1, -1): # direction left
-                    if not(board[x1, i, 1]):
-                        for j in range(4):
-                            if not(b[x1, i, j]):
-                                b = self.set_barrier(b, x1, i, j)
-                                lx.append(x1)
-                                ly.append(i)
-                                lb.append(j)
-                    else:
-                        break
-                
-        result = np.array([lx, ly, lb])
-        return result
+        for i in range(board_size):
+            for j in range(board_size):
+                for k in range(4):
+                    if self.check_valid_step(b, my_pos, (i,j), k, adv_pos):
+                        list_step.append(((i,j),k))
+        return list_step
     
     # find a list of successor board given current board
     def successors():
+        
         return
 
     def step(self, chess_board, my_pos, adv_pos, max_step):
