@@ -6,7 +6,7 @@ import sys
 import numpy as np
 
 
-@register_agent("student_agent")
+@register_agent("chang_agent")
 class ChangAgent(Agent):
     """
     A dummy class for your implementation. Feel free to use this class to
