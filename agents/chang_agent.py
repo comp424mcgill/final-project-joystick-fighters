@@ -28,23 +28,25 @@ class ChangAgent(Agent):
     
     
     # part of minimax algorithm
-    def minimax_value(self, board, my_pos, adv_pos, max_turn, depth):
+    def minimax_value(self, board, my_pos, adv_pos, max_turn, sr=0.2):
         result, util = self.check_endgame(board, my_pos, adv_pos)
         if result:
             return util
         suc_values =np.array([], dtype='int16')
-        if max_turn:
+        if (max_turn):
             list_step = self.all_steps(board, my_pos, adv_pos)
             list_new_board, list_new_my_pos, _ = self.successors(board, list_step)
-            for i in range(len(list_new_board)):
-                new_value = self.minimax_value(list_new_board[i], list_new_my_pos[i], adv_pos, False, depth+1)
-                suc_values = np.append(suc_values, new_value) 
+            itr = np.random.permutation(len(list_new_board))
+            for i in range(np.ceil(sr*len(list_new_board)).astype(int)):
+                new_value = self.minimax_value(list_new_board[itr[i]], list_new_my_pos[itr[i]], adv_pos, False)
+                suc_values = np.append(suc_values, -new_value) 
             return np.max(suc_values)
         else:
             list_step = self.all_steps(board, adv_pos, my_pos)
             list_new_board, list_new_my_pos, _ = self.successors(board, list_step)
-            for i in range(len(list_new_board)):
-                new_value = -self.minimax_value(list_new_board[i], list_new_my_pos[i], my_pos, True, depth+1)
+            itr = np.random.permutation(len(list_new_board))
+            for i in range(np.ceil(sr*len(list_new_board)).astype(int)):
+                new_value = self.minimax_value(list_new_board[itr[i]], my_pos, list_new_my_pos[itr[i]], True)
                 suc_values = np.append(suc_values, new_value) 
             return np.min(suc_values)
 
@@ -200,7 +202,7 @@ class ChangAgent(Agent):
         for i in range(len(list_new_board)):
             temp_new_board = list_new_board[i]
             temp_new_my_pos = list_new_my_pos[i]
-            list_val = np.append(list_val, self.minimax_value(temp_new_board, temp_new_my_pos, adv_pos, True, 0))
+            list_val = np.append(list_val, self.minimax_value(temp_new_board, temp_new_my_pos, adv_pos, False, 0.2))
         
         best_idx = np.argmax(list_val)
         best_my_pos = list_new_my_pos[best_idx]
