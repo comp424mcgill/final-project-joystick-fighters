@@ -16,6 +16,7 @@ class ChangAgent(Agent):
     def __init__(self):
         super(ChangAgent, self).__init__()
         self.name = "ChangAgent"
+        self.autoplay = True
         self.dir_map = {
             "u": 0,
             "r": 1,
@@ -168,7 +169,7 @@ class ChangAgent(Agent):
         for i in range(len(list_step)):
             temp = board.copy()
             (x, y), dir = list_step[i]
-            temp[x,y,dir] = True
+            temp = self.set_barrier(temp, x, y, dir)
             list_new_board.append(temp)
             list_new_pos.append((x,y))
             list_new_dir.append(dir)
