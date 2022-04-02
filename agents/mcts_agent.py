@@ -1,23 +1,23 @@
-# just in case I screwed up
-from os import listdir
+# Student agent: Add your own agent here
 from agents.agent import Agent
 from store import register_agent
 import sys
-import numpy as np
 from copy import deepcopy
+import numpy as np
 
 
-@register_agent("chang_agent")
-class ChangAgent(Agent):
+@register_agent("mcts_agent")
+class MCTSAgent(Agent):
     """
     A dummy class for your implementation. Feel free to use this class to
     add any helper functionalities needed for your agent.
     """
 
     def __init__(self):
-        super(ChangAgent, self).__init__()
-        self.name = "ChangAgent"
+        super(MCTSAgent, self).__init__()
+        self.name = "MCTSAgent"
         self.autoplay = True
+        
         self.dir_map = {
             "u": 0,
             "r": 1,
@@ -26,34 +26,49 @@ class ChangAgent(Agent):
         }
         self.moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
         self.opposites = {0: 2, 1: 3, 2: 0, 3: 1}
-    
-    
-    # part of minimax algorithm
-    def minimax_value(self, board, my_pos, adv_pos, max_turn, sr=0.2):
-        result, util = self.check_endgame(board, my_pos, adv_pos)
-        if result:
-            return util
-        suc_values =np.array([], dtype='int16')
-        if (max_turn):
-            list_step = self.all_steps(board, my_pos, adv_pos)
-            list_new_board, list_new_my_pos, _ = self.successors(board, list_step)
-            itr = np.random.permutation(len(list_new_board))
-            for i in range(np.ceil(sr*len(list_new_board)).astype(int)):
-                new_value = self.minimax_value(list_new_board[itr[i]], list_new_my_pos[itr[i]], adv_pos, False)
-                suc_values = np.append(suc_values, -new_value) 
-            return np.max(suc_values)
-        else:
-            list_step = self.all_steps(board, adv_pos, my_pos)
-            list_new_board, list_new_my_pos, _ = self.successors(board, list_step)
-            itr = np.random.permutation(len(list_new_board))
-            for i in range(np.ceil(sr*len(list_new_board)).astype(int)):
-                new_value = self.minimax_value(list_new_board[itr[i]], my_pos, list_new_my_pos[itr[i]], True)
-                suc_values = np.append(suc_values, new_value) 
-            return np.min(suc_values)
+        self.max_depth = 2
 
+    def step(self, chess_board, my_pos, adv_pos, max_step):
+        """
+        Implement the step function of your agent here.
+        You can use the following variables to access the chess board:
+        - chess_board: a numpy array of shape (x_max, y_max, 4)
+        - my_pos: a tuple of (x, y)
+        - adv_pos: a tuple of (x, y)
+        - max_step: an integer
+
+        You should return a tuple of ((x, y), dir),
+        where (x, y) is the next position of your agent and dir is the direction of the wall
+        you want to put on.
+
+        Please check the sample implementation in agents/random_agent.py or agents/human_agent.py for more details.
+        """
+        # dummy return
+        
+        
+        return my_pos, self.dir_map["u"]
     
-    # check if the game ends
-    # copied from world -> check_endgame
+    
+    def random_walk(self, board, my_pos, adv_pos):
+        temp=deepcopy(board)
+        result, util = self.check_endgame(temp, my_pos, adv_pos)
+        while (result != True):
+            myposstep=self.all_steps(temp,my_pos,adv_pos)
+            choice1 = np.random.randint(0, (len(myposstep)-1))
+            (x, y), dir = myposstep[choice1]
+            temp=self.set_barrier(temp, x, y, dir)
+            my_pos= (x, y)
+            result, util = self.check_endgame(temp, my_pos, adv_pos)
+            if (result == True):
+                return util
+            adsteps=self.all_steps(temp,adv_pos,my_pos)
+            choice2 = np.random.randint(0, (len(adsteps) - 1))
+            (x, y), dir = myposstep[choice2]
+            temp=self.set_barrier(temp, x, y, dir)
+            adv_pos = (x, y)
+            result, util = self.check_endgame(temp, my_pos, adv_pos)
+        return util
+    
     def check_endgame(self, board, my_pos, adv_pos):
         father = dict()
         board_size = board.shape[0]
@@ -87,13 +102,15 @@ class ChangAgent(Agent):
         p1_r = find(tuple(adv_pos))
         p0_score = list(father.values()).count(p0_r)
         p1_score = list(father.values()).count(p1_r)
-        if p0_r == p1_r:
-            return False, 0
-        elif p0_score != p1_score: # player 0 wins
-            return True, (p0_score - p1_score)
-        else: # tie
+        if p0_r == p1_r: # not end
+            return False, -1
+        elif p0_score > p1_score: # player 0 wins
+            return True, 1
+        elif p0_score < p1_score: # player 1 wins
             return True, 0
-
+        else: # tie
+            return True, 0.5
+        
     
     def set_barrier(self, board, r, c, dir):
         # Set the barrier to True
@@ -155,7 +172,6 @@ class ChangAgent(Agent):
         return is_reached
     
     
-    # find all possible steps given current board
     def all_steps(self, board, my_pos, adv_pos):
         list_step = []
         board_size = board.shape[0]
@@ -165,52 +181,4 @@ class ChangAgent(Agent):
                     if self.check_valid_step(board, np.array(my_pos), np.array([i,j]), k, adv_pos):
                         list_step.append(((i,j),k))
         return list_step
-    
-    
-    # find a list of successor board given current board
-    def successors(self, board, list_step):
-        list_new_board, list_new_pos, list_new_dir = [], [], []
-        for i in range(len(list_step)):
-            temp = deepcopy(board)
-            (x, y), dir = list_step[i]
-            temp = self.set_barrier(temp, x, y, dir)
-            list_new_board.append(temp)
-            list_new_pos.append((x,y))
-            list_new_dir.append(dir)
-        return list_new_board, list_new_pos, list_new_dir
-
-
-    def step(self, chess_board, my_pos, adv_pos, max_step):
-        """
-        Implement the step function of your agent here.
-        You can use the following variables to access the chess board:
-        - chess_board: a numpy array of shape (x_max, y_max, 4)
-        - my_pos: a tuple of (x, y)
-        - adv_pos: a tuple of (x, y)
-        - max_step: an integer
-
-        You should return a tuple of ((x, y), dir),
-        where (x, y) is the next position of your agent and dir is the direction of the wall
-        you want to put on.
-
-        Please check the sample implementation in agents/random_agent.py or agents/human_agent.py for more details.
-        """
-        # dummy return
-        
-        list_op = self.all_steps(chess_board, np.array(my_pos), adv_pos)
-        list_new_board, list_new_my_pos, list_new_dir = self.successors(chess_board, list_op)
-        list_val = np.array([], dtype='int16')
-        for i in range(len(list_new_board)):
-            temp_new_board = list_new_board[i]
-            temp_new_my_pos = list_new_my_pos[i]
-            list_val = np.append(list_val, self.minimax_value(temp_new_board, temp_new_my_pos, adv_pos, False, 0.5))
-        
-        best_idx = np.argmax(list_val)
-        best_my_pos = list_new_my_pos[best_idx]
-        best_dir = list_new_dir[best_idx]
-
-        return best_my_pos, best_dir
-    
-    
-    
     
