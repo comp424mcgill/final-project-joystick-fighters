@@ -28,7 +28,7 @@ class ChangAgent(Agent):
     
     
     # part of minimax algorithm
-    def minimax_value(self, board, my_pos, adv_pos, max_turn):
+    def minimax_value(self, board, my_pos, adv_pos, max_turn, depth):
         result, util = self.check_endgame(board, my_pos, adv_pos)
         if result:
             return util
@@ -37,14 +37,14 @@ class ChangAgent(Agent):
             list_step = self.all_steps(board, my_pos, adv_pos)
             list_new_board, list_new_my_pos, _ = self.successors(board, list_step)
             for i in range(len(list_new_board)):
-                new_value = self.minimax_value(list_new_board[i], list_new_my_pos[i], adv_pos, False)
+                new_value = self.minimax_value(list_new_board[i], list_new_my_pos[i], adv_pos, False, depth+1)
                 suc_values = np.append(suc_values, new_value) 
             return np.max(suc_values)
         else:
             list_step = self.all_steps(board, adv_pos, my_pos)
             list_new_board, list_new_my_pos, _ = self.successors(board, list_step)
             for i in range(len(list_new_board)):
-                new_value = -self.minimax_value(list_new_board[i], list_new_my_pos[i], my_pos, True)
+                new_value = -self.minimax_value(list_new_board[i], list_new_my_pos[i], my_pos, True, depth+1)
                 suc_values = np.append(suc_values, new_value) 
             return np.min(suc_values)
 
@@ -163,6 +163,7 @@ class ChangAgent(Agent):
                         list_step.append(((i,j),k))
         return list_step
     
+    
     # find a list of successor board given current board
     def successors(self, board, list_step):
         list_new_board, list_new_pos, list_new_dir = [], [], []
@@ -174,6 +175,7 @@ class ChangAgent(Agent):
             list_new_pos.append((x,y))
             list_new_dir.append(dir)
         return list_new_board, list_new_pos, list_new_dir
+
 
     def step(self, chess_board, my_pos, adv_pos, max_step):
         """
@@ -198,7 +200,7 @@ class ChangAgent(Agent):
         for i in range(len(list_new_board)):
             temp_new_board = list_new_board[i]
             temp_new_my_pos = list_new_my_pos[i]
-            list_val = np.append(list_val, self.minimax_value(temp_new_board, temp_new_my_pos, adv_pos, True))
+            list_val = np.append(list_val, self.minimax_value(temp_new_board, temp_new_my_pos, adv_pos, True, 0))
         
         best_idx = np.argmax(list_val)
         best_my_pos = list_new_my_pos[best_idx]
