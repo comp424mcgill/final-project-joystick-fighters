@@ -47,4 +47,4 @@ class HumanAgent(Agent):
         return my_pos, self.dir_map[dir]
 
     def check_valid_input(self, x, y, dir, x_max, y_max):
-        return 0 <= x < x_max and 0 <= y < y_max and dir in self.dir_map
+        return 0 <= x < x_max and 0 <= y < y_max and dir in self.dir_map1
