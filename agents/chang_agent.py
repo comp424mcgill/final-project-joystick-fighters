@@ -168,7 +168,7 @@ class ChangAgent(Agent):
         for i in range(len(list_step)):
             temp = board.copy()
             (x, y), dir = list_step[i]
-            temp[x,y,dir] = True
+            temp = self.set_barrier(temp, x, y, dir)
             list_new_board.append(temp)
             list_new_pos.append((x,y))
             list_new_dir.append(dir)
