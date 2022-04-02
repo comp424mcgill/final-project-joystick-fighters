@@ -73,15 +73,15 @@ class LinAgent(Agent):
         list_new_pos, list_new_dir = [], []
         list_utility=[]
         for i in range(len(list_step1)):
-            temp = board.copy()
+            temp = board.deepcopy()
             (x, y), dir = list_step1[i]
-            temp=LinAgent.set_barrier(self, temp, x, y, dir)
-            advsteps=LinAgent.all_steps_possible(self, temp, adv_pos, (x, y))
+            temp=self.set_barrier(temp, x, y, dir)
+            advsteps=self.all_steps_possible(temp, adv_pos, (x, y))
             for j in range(len(advsteps)):
-                temp1=temp.copy()
+                temp1=temp.deepcopy()
                 (x1, y1), dir1 = advsteps[i]
-                temp1 = LinAgent.set_barrier(self, temp1, x1, y1, dir1)
-                mystep= LinAgent.all_steps_possible(self, temp, (x, y), (x1, y1))
+                temp1 = self.set_barrier(temp1, x1, y1, dir1)
+                mystep= self.all_steps_possible(temp, (x, y), (x1, y1))
 
 
 
@@ -95,9 +95,9 @@ class LinAgent(Agent):
         board[r + move[0], c + move[1], self.opposites[dir]] = True
         return board
 
-    def random_walk(self, my_pos, adv_pos):
+    def random_walk(self, board, my_pos, adv_pos):
         """
-        Randomly walk to the next position in the board.
+        Randomly walk until reach end of game
 
         Parameters
         ----------
@@ -106,33 +106,113 @@ class LinAgent(Agent):
         adv_pos : tuple
             The position of the adversary.
         """
-        ori_pos = deepcopy(my_pos)
-        steps = np.random.randint(0, self.max_step + 1)
-        # Random Walk
-        for _ in range(steps):
-            r, c = my_pos
-            dir = np.random.randint(0, 4)
-            m_r, m_c = self.moves[dir]
-            my_pos = (r + m_r, c + m_c)
+        temp=board.deepcopy()
+        result, util = self.check_endgame(temp, my_pos, adv_pos)
+        while (result != True):
+            myposstep=self.all_steps_possible(temp,my_pos,adv_pos)
+            choice1 = np.random.randint(0, (len(myposstep)-1))
+            (x, y), dir = myposstep[choice1]
+            temp=self.set_barrier(temp, x, y, dir)
+            my_pos= (x, y)
+            result, util = self.check_endgame(temp, my_pos, adv_pos)
+            if (result == True):
+                return util
+            adsteps=self.all_steps_possible(temp,adv_pos,my_pos)
+            choice2 = np.random.randint(0, (len(adsteps) - 1))
+            (x, y), dir = myposstep[choice2]
+            temp=self.set_barrier(temp, x, y, dir)
+            adv_pos = (x, y)
+            result, util = self.check_endgame(temp, my_pos, adv_pos)
+        return util
 
-            # Special Case enclosed by Adversary
-            k = 0
-            while self.chess_board[r, c, dir] or my_pos == adv_pos:
-                k += 1
-                if k > 300:
+    # check if the game ends
+    # copied from world -> check_endgame
+    def check_endgame(self, board, my_pos, adv_pos):
+        father = dict()
+        board_size = board.shape[0]
+        for r in range(board_size):
+            for c in range(board_size):
+                father[(r, c)] = (r, c)
+
+        def find(pos):
+            if father[pos] != pos:
+                father[pos] = find(father[pos])
+            return father[pos]
+
+        def union(pos1, pos2):
+            father[pos1] = pos2
+
+        for r in range(board_size):
+            for c in range(board_size):
+                for dir, move in enumerate(self.moves[1:3]):
+                    if board[r, c, dir + 1]:
+                        continue
+                    pos_a = find((r, c))
+                    pos_b = find((r + move[0], c + move[1]))
+                    if pos_a != pos_b:
+                        union(pos_a, pos_b)
+
+        for r in range(board_size):
+            for c in range(board_size):
+                find((r, c))
+
+        p0_r = find(tuple(my_pos))
+        p1_r = find(tuple(adv_pos))
+        p0_score = list(father.values()).count(p0_r)
+        p1_score = list(father.values()).count(p1_r)
+        if p0_r == p1_r:
+            return False, 0
+        elif p0_score != p1_score:  # player 0 wins
+            return True, (p0_score - p1_score)
+        else:  # tie
+            return True, 0
+
+    def check_valid_step(self, board, start_pos, end_pos, barrier_dir, adv_pos):
+            """
+            Check if the step the agent takes is valid (reachable and within max steps).
+
+            Parameters
+            ----------
+            start_pos : tuple
+                The start position of the agent.
+            end_pos : np.ndarray
+                The end position of the agent.
+            barrier_dir : int
+                The direction of the barrier.
+            """
+            # Endpoint already has barrier or is boarder
+            r, c = end_pos
+            if board[r, c, barrier_dir]:
+                return False
+            if np.array_equal(start_pos, end_pos):
+                return True
+
+            # Get position of the adversary
+            # adv_pos = self.p0_pos if self.turn else self.p1_pos
+
+            max_step = (board.shape[0] + 1) // 2
+
+            # BFS
+            state_queue = [(start_pos, 0)]
+            visited = {tuple(start_pos)}
+            is_reached = False
+            while state_queue and not is_reached:
+                cur_pos, cur_step = state_queue.pop(0)
+                r, c = cur_pos
+                if cur_step == max_step:
                     break
-                dir = np.random.randint(0, 4)
-                m_r, m_c = self.moves[dir]
-                my_pos = (r + m_r, c + m_c)
+                for dir, move in enumerate(self.moves):
+                    if board[r, c, dir]:
+                        continue
 
-            if k > 300:
-                my_pos = ori_pos
-                break
+                    next_pos = cur_pos + move
+                    if np.array_equal(next_pos, adv_pos) or tuple(next_pos) in visited:
+                        continue
+                    if np.array_equal(next_pos, end_pos):
+                        is_reached = True
+                        break
 
-        # Put Barrier
-        dir = np.random.randint(0, 4)
-        r, c = my_pos
-        while self.chess_board[r, c, dir]:
-            dir = np.random.randint(0, 4)
+                    visited.add(tuple(next_pos))
+                    state_queue.append((next_pos, cur_step + 1))
 
-        return my_pos, dir
+            return is_reached
