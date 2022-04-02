@@ -16,6 +16,7 @@ class ChangAgent(Agent):
     def __init__(self):
         super(ChangAgent, self).__init__()
         self.name = "ChangAgent"
+        self.autoplay = True
         self.dir_map = {
             "u": 0,
             "r": 1,
