@@ -36,14 +36,14 @@ class ChangAgent(Agent):
             list_step = self.all_steps(board, my_pos, adv_pos)
             list_new_board, list_new_my_pos, _ = self.successors(board, list_step)
             for i in range(len(list_new_board)):
-                new_value = self.minimax_value(list_new_board[i], adv_pos, list_new_my_pos[i], False)
+                new_value = self.minimax_value(list_new_board[i], list_new_my_pos[i], adv_pos, False)
                 suc_values = np.append(suc_values, new_value) 
             return np.max(suc_values)
         else:
             list_step = self.all_steps(board, adv_pos, my_pos)
             list_new_board, list_new_my_pos, _ = self.successors(board, list_step)
             for i in range(len(list_new_board)):
-                new_value = self.minimax_value(list_new_board[i], list_new_my_pos[i], adv_pos, True)
+                new_value = -self.minimax_value(list_new_board[i], list_new_my_pos[i], my_pos, True)
                 suc_values = np.append(suc_values, new_value) 
             return np.min(suc_values)
 
@@ -71,7 +71,7 @@ class ChangAgent(Agent):
                     if board[r, c, dir+1]:
                         continue
                     pos_a = find((r, c))
-                    pos_b = find(r+move[0], c+move[1])
+                    pos_b = find((r+move[0], c+move[1]))
                     if pos_a != pos_b:
                         union(pos_a, pos_b)
                         
@@ -85,9 +85,7 @@ class ChangAgent(Agent):
         p1_score = list(father.values()).count(p1_r)
         if p0_r == p1_r:
             return False, 0
-        elif p0_score > p1_score: # player 0 wins
-            return True, (p0_score - p1_score)
-        elif p0_score < p1_score: # player 1 wins
+        elif p0_score != p1_score: # player 0 wins
             return True, (p0_score - p1_score)
         else: # tie
             return True, 0
@@ -160,14 +158,14 @@ class ChangAgent(Agent):
         for i in range(board_size):
             for j in range(board_size):
                 for k in range(4):
-                    if self.check_valid_step(board, my_pos, (i,j), k, adv_pos):
+                    if self.check_valid_step(board, np.array(my_pos), np.array([i,j]), k, adv_pos):
                         list_step.append(((i,j),k))
         return list_step
     
     # find a list of successor board given current board
     def successors(self, board, list_step):
         list_new_board, list_new_pos, list_new_dir = [], [], []
-        for i in len(list_step):
+        for i in range(len(list_step)):
             temp = board.copy()
             (x, y), dir = list_step[i]
             temp[x,y,dir] = True
@@ -192,13 +190,14 @@ class ChangAgent(Agent):
         Please check the sample implementation in agents/random_agent.py or agents/human_agent.py for more details.
         """
         # dummy return
-        list_op = self.all_steps(chess_board, my_pos, adv_pos)
+        
+        list_op = self.all_steps(chess_board, np.array(my_pos), adv_pos)
         list_new_board, list_new_my_pos, list_new_dir = self.successors(chess_board, list_op)
         list_val = np.array([], dtype='int16')
         for i in range(len(list_new_board)):
             temp_new_board = list_new_board[i]
             temp_new_my_pos = list_new_my_pos[i]
-            list_val = np.array(list_val, self.minimax_value(temp_new_board, temp_new_my_pos, adv_pos, True))
+            list_val = np.append(list_val, self.minimax_value(temp_new_board, temp_new_my_pos, adv_pos, True))
         
         best_idx = np.argmax(list_val)
         best_my_pos = list_new_my_pos[best_idx]
