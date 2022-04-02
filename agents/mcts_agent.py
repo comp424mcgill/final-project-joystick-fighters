@@ -1,4 +1,5 @@
 # Student agent: Add your own agent here
+from logging import root
 from agents.agent import Agent
 from store import register_agent
 import sys
@@ -48,6 +49,20 @@ class MCTSAgent(Agent):
         
         return my_pos, self.dir_map["u"]
     
+    
+    class MonteCarloTreeSearchNode():
+        def __init__(self, board, my_pos, adv_pos, parent=None, parent_action=None):
+            self.board = board
+            self.my_pos = my_pos
+            self.adv_pos = adv_pos
+            self.parent = parent
+            self.parent_action = parent_action
+            self.children = []
+            self.number_of_visits = 0
+            self.value = 0
+            return
+        
+        def 
     
     def random_walk(self, board, my_pos, adv_pos):
         temp=deepcopy(board)
