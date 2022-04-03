@@ -59,41 +59,76 @@ class LinAgent(Agent):
     def choice(self, board, list_step1, adv_pos):
         list_new_pos, list_new_dir = [], []
         list_utility = [0] * len(list_step1)
+        list_res=[False]*len(list_step1)
         for i in range(len(list_step1)):  # my steps
             temp = board.copy()
             (x, y), dir = list_step1[i]
             temp = self.set_barrier(temp, x, y, dir)
             mypos1 = (x, y)
             result, util = self.check_endgame(temp, mypos1, adv_pos)
+            if util==1:
+                return i
             list_utility[i] = util * 100
-            if not result:
+            list_res[i]=result
+
+        for i in range(len(list_res)):
+            if  list_res[i]==False:
+                (x, y), dir = list_step1[i]
+                temp = board.copy()
+                temp = self.set_barrier(temp, x, y, dir)
+                mypos1 = (x, y)
                 advsteps = self.all_steps_possible(temp, adv_pos, mypos1, 1)  # adversary steps
+                reachend=False
                 if len(advsteps) > 0:
                     list_utility1 = [0] * len(advsteps)
+                    list_res2 = [False] * len(advsteps)
                     for j in range(len(advsteps)):
                         temp1 = temp.copy()
                         (x1, y1), dir1 = advsteps[j]
                         advpos1 = (x1, y1)
                         temp1 = self.set_barrier(temp1, x1, y1, dir1)
                         result1, util1 = self.check_endgame(temp1, mypos1, advpos1)
+                        if util1==-1:
+                            list_utility[i]=util1*100
+                            reachend=True
+                            break
                         list_utility1[j] = util1 * 100
-                        if not result1:
-                            mysteps = self.all_steps_possible(temp1, mypos1, advpos1, 1)  # my steps
-                            if len(mysteps) > 0:
-                                list_utility2 = [0] * len(mysteps)
-                                for k in range(len(mysteps)):
-                                    temp2 = temp1.copy()
-                                    (x2, y2), dir2 = mysteps[k]
-                                    temp2 = self.set_barrier(temp2, x2, y2, dir2)
-                                    result2, util2 = self.check_endgame(temp, (x2, y2), advpos1)
-                                    list_utility2[k] = util2 * 100
-                                    if not result2:
-                                        temputil = 0
-                                        for z in range(20):
-                                            temputil = self.randomwalk(board, (x2, y2), advpos1)*80+temputil
-                                        list_utility2[k]=temputil/20+20*sqrt(log(20)/20)
-                                list_utility1[j] =self.findmaxind(list_utility2)
-                    list_utility[i]=self.findminind(list_utility1)
+                        list_res2[j] = result1
+                    if not reachend:
+                        for j in range(len(list_res2)):
+                            if not list_res2[j] == False:
+                                temp1 = temp.copy()
+                                (x1, y1), dir1 = advsteps[j]
+                                advpos1 = (x1, y1)
+                                temp1 = self.set_barrier(temp1, x1, y1, dir1)
+                                mysteps = self.all_steps_possible(temp1, mypos1, advpos1, 1)  # my steps
+                                if len(mysteps) > 0:
+                                    vic = False
+                                    list_utility2 = [0] * len(mysteps)
+                                    list_res3 = [False] * len(mysteps)
+                                    for k in range(len(mysteps)):
+                                        temp2 = temp1.copy()
+                                        (x2, y2), dir2 = mysteps[k]
+                                        temp2 = self.set_barrier(temp2, x2, y2, dir2)
+                                        result2, util2 = self.check_endgame(temp, (x2, y2), advpos1)
+                                        if util2==1:
+                                            list_utility1[j]=util2*100
+                                            vic=True
+                                            break
+                                        list_utility2[k] = util2 * 100
+                                        list_res3[k]=result2
+                                    if not vic:
+                                        for k in range(len(list_res3)):
+                                            if not list_res3[k]==False:
+                                                temp2 = temp1.copy()
+                                                (x2, y2), dir2 = mysteps[k]
+                                                temp2 = self.set_barrier(temp2, x2, y2, dir2)
+                                                temputil = 0
+                                                for z in range(100):
+                                                    temputil = self.randomwalk(temp2, (x2, y2), advpos1)*80+temputil
+                                                list_utility2[k]=temputil/100+20*sqrt(log(100)/100)
+                                        list_utility1[j] =self.findmaxind(list_utility2)
+                        list_utility[i]=self.findminind(list_utility1)
         return self.findmaxid(list_utility)
 
     def set_barrier(self, board, r, c, dir):
@@ -118,7 +153,7 @@ class LinAgent(Agent):
         temp = board.copy()
         result, util = self.check_endgame(temp, my_pos, adv_pos)
         depth = 2
-        while not result:
+        for i in range(10):
             advposstep = self.all_steps_possible(temp,adv_pos, my_pos, depth)
             if len(advposstep)>0:
                 choice1 = random.randint(0, (len(advposstep) - 1))
@@ -207,7 +242,7 @@ class LinAgent(Agent):
             if p0_score > p1_score:
                 return True, 1
             else:
-                return True, -100
+                return True, -1
         else:  # tie
             return True, 0
 
