@@ -2,6 +2,7 @@
 from agents.agent import Agent
 from store import register_agent
 import sys
+import numpy as np
 
 
 @register_agent("student_agent")
@@ -14,12 +15,16 @@ class StudentAgent(Agent):
     def __init__(self):
         super(StudentAgent, self).__init__()
         self.name = "StudentAgent"
+        self.autoplay = True
+        
         self.dir_map = {
             "u": 0,
             "r": 1,
             "d": 2,
             "l": 3,
         }
+        self.moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
+        self.opposites = {0: 2, 1: 3, 2: 0, 3: 1}
 
     def step(self, chess_board, my_pos, adv_pos, max_step):
         """
