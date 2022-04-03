@@ -1,7 +1,8 @@
+import random
 from math import log
 
 import numpy as np
-from copy import deepcopy
+
 
 from numpy import sqrt
 
@@ -39,8 +40,8 @@ class LinAgent(Agent):
         possiblesteps=self.all_steps_possible(chess_board,my_pos, adv_pos,0)
         index= self.choice(chess_board, possiblesteps, adv_pos)
         (x, y), dir = possiblesteps[index]
-        my_pos=(x, y)
-        return my_pos, dir
+        x1,y1=my_pos
+        return (x, y), dir
 
     # find all possible steps given current board
 
@@ -59,7 +60,7 @@ class LinAgent(Agent):
         list_new_pos, list_new_dir = [], []
         list_utility = [0] * len(list_step1)
         for i in range(len(list_step1)):  # my steps
-            temp = board.deepcopy()
+            temp = board.copy()
             (x, y), dir = list_step1[i]
             temp = self.set_barrier(temp, x, y, dir)
             mypos1 = (x, y)
@@ -70,7 +71,7 @@ class LinAgent(Agent):
                 if len(advsteps) > 0:
                     list_utility1 = [0] * len(advsteps)
                     for j in range(len(advsteps)):
-                        temp1 = temp.deepcopy()
+                        temp1 = temp.copy()
                         (x1, y1), dir1 = advsteps[j]
                         advpos1 = (x1, y1)
                         temp1 = self.set_barrier(temp1, x1, y1, dir1)
@@ -81,16 +82,16 @@ class LinAgent(Agent):
                             if len(mysteps) > 0:
                                 list_utility2 = [0] * len(mysteps)
                                 for k in range(len(mysteps)):
-                                    temp2 = temp1.deepcopy()
+                                    temp2 = temp1.copy()
                                     (x2, y2), dir2 = mysteps[k]
                                     temp2 = self.set_barrier(temp2, x2, y2, dir2)
                                     result2, util2 = self.check_endgame(temp, (x2, y2), advpos1)
                                     list_utility2[k] = util2 * 100
                                     if not result2:
                                         temputil = 0
-                                        for z in range(10000):
+                                        for z in range(20):
                                             temputil = self.randomwalk(board, (x2, y2), advpos1)*80+temputil
-                                        list_utility2[k]=temputil/10000+20*sqrt(log(10000)/10000)
+                                        list_utility2[k]=temputil/20+20*sqrt(log(20)/20)
                                 list_utility1[j] =self.findmaxind(list_utility2)
                     list_utility[i]=self.findminind(list_utility1)
         return self.findmaxid(list_utility)
@@ -114,28 +115,25 @@ class LinAgent(Agent):
         adv_pos : tuple
             The position of the adversary.
         """
-        temp = board.deepcopy()
+        temp = board.copy()
         result, util = self.check_endgame(temp, my_pos, adv_pos)
         depth = 2
-        mstp=True
         while not result:
-            mstp = False
             advposstep = self.all_steps_possible(temp,adv_pos, my_pos, depth)
             if len(advposstep)>0:
-                choice1 = np.random.randint(0, (len(advposstep) - 1))
+                choice1 = random.randint(0, (len(advposstep) - 1))
                 (x, y), dir = advposstep[choice1]
                 temp = self.set_barrier(temp, x, y, dir)
-                my_pos = (x, y)
-                result, util = self.check_endgame(temp,  adv_pos, my_pos)
+                adv_pos = (x, y)
+                result, util = self.check_endgame(temp, my_pos, adv_pos)
                 if result:
-                    return -util
+                    return util
                 mysteps = self.all_steps_possible(temp, adv_pos, my_pos, depth)
-                mstp = True
                 if len(mysteps)>0:
-                    choice2 = np.random.randint(0, (len(mysteps) - 1))
+                    choice2 = random.randint(0, (len(mysteps) - 1))
                     (x1, y1), dir2 = mysteps[choice2]
                     temp = self.set_barrier(temp, x1, y1, dir2)
-                    adv_pos = (x, y)
+                    my_pos = (x, y)
                     result, util = self.check_endgame(temp, my_pos, adv_pos)
                     if result:
                         return util
@@ -144,10 +142,9 @@ class LinAgent(Agent):
             else:
                 return 0
             depth += 1
-        if mstp:
-            return util
-        else:
-            return -util
+
+        return util
+
 
     def findmaxind(selfself, listint):
         max=listint[0]
@@ -210,7 +207,7 @@ class LinAgent(Agent):
             if p0_score > p1_score:
                 return True, 1
             else:
-                return True, -1
+                return True, -100
         else:  # tie
             return True, 0
 
