@@ -271,7 +271,8 @@ class MCTSAgent(Agent):
                     if self.check_valid_step(board, np.array(my_pos), np.array([i,j]), k, adv_pos):
                         list_step.append(((i,j),k))
         return list_step
-    
+
+
     # Given current state, return the next state
     def next_state(self, board, my_pos, adv_pos, step, my_turn):
         (r, c), dir = step
@@ -280,7 +281,8 @@ class MCTSAgent(Agent):
             return new_board, (r, c), adv_pos, False
         else:
             return new_board, my_pos, (r, c), True
-    
+
+
     
     def successors(self, board, list_step):
         list_new_board, list_new_pos, list_new_dir = [], [], []
@@ -293,10 +295,15 @@ class MCTSAgent(Agent):
             list_new_dir.append(dir)
         return list_new_board, list_new_pos, list_new_dir
     
-    
+
+
+
+
     def find_all_children(self, board, my_pos, adv_pos, my_turn):
         if my_turn:
             list_children = self.all_steps(board, my_pos, adv_pos)
         else:
             list_children = self.all_steps(board, adv_pos, my_pos)
         return self.successors(board, list_children)
+
+
