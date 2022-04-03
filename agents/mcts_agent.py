@@ -1,7 +1,6 @@
 # Student agent: Add your own agent here
 from hashlib import new
 from logging import root
-from tkinter.tix import Tree
 from agents.agent import Agent
 from constants import MAX_BOARD_SIZE
 from store import register_agent
