@@ -2,6 +2,7 @@
 from hashlib import new
 from logging import root
 from agents.agent import Agent
+from constants import MAX_BOARD_SIZE
 from store import register_agent
 import sys
 from copy import deepcopy
@@ -28,7 +29,9 @@ class MCTSAgent(Agent):
         }
         self.moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
         self.opposites = {0: 2, 1: 3, 2: 0, 3: 1}
-        self.max_exp = 1000
+        self.max_exp = 10 # max number of exploration
+        self.max_depth = 1 # max number of depth of the tree
+        
 
     def step(self, chess_board, my_pos, adv_pos, max_step):
         """
@@ -48,20 +51,22 @@ class MCTSAgent(Agent):
         # dummy return
         tree_root = self.MCTSNode(chess_board, my_pos, adv_pos, True, None, None)
         for i in range(self.max_exp):
-            node, _ = tree_root.select_node(tree_root.uct_val)
+            node, _ = self.select_node(tree_root, tree_root.uct_val(), 0)
             node.explored = True
-            node.number_of_visits += 1
             self.add_children(node, self.find_all_children(chess_board, my_pos, adv_pos, node.my_turn))
-            self.value += self.random_walk(chess_board, my_pos, adv_pos, True)
+            rst = self.random_walk(chess_board, my_pos, adv_pos)
+            while(node!=None):
+                node.number_of_visits += 1
+                node.value += rst
+                node = node.parent
         
-        rtn_act, rtn_val = None, 0
+        new_pos, new_dir, rtn_val = None, None, -1
         for i in range(len(tree_root.children)):
             child = tree_root.children[i]
             child_val = child.value/(child.number_of_visits+0.001)
             if child_val > rtn_val:
-                rtn_act = child.my_pos, child.new_dir
-        
-        return rtn_act
+                new_pos, new_dir, rtn_val = child.my_pos, child.new_dir, child_val
+        return new_pos, new_dir
     
     
     class MCTSNode():
@@ -80,25 +85,28 @@ class MCTSAgent(Agent):
         
         def uct_val(self):
             if self.parent==None:
-                return self.value/self.number_of_visits
+                return self.value/(self.number_of_visits+0.001)
             return (self.value/(self.number_of_visits+0.001) + np.sqrt(2*self.parent.number_of_visits/(self.number_of_visits+0.001)))
         
-        def select_node(self, def_val):
-            rtn_node, rtn_val = self, def_val
-            if self.explored==True:
-                for i in range(len(self.children)):
-                    child = self.children[i]
-                    child_val = child.uct_val()
-                    if child_val > rtn_val:
-                        rtn_node, rtn_val = child.select_node(child_val)
-            return rtn_node, rtn_val
         
+    def select_node(self, node, node_val, depth):
+        rtn_node, rtn_val = node, node_val
+        if node.explored==True and depth<self.max_depth:
+            for i in range(len(node.children)):
+                child = node.children[i]
+                child_val = child.uct_val()
+                if child_val > rtn_val:
+                    rtn_node, rtn_val = self.select_node(child, child_val, depth+1)
+        return rtn_node, rtn_val
+
+    
     def add_children(self, node, list_children):
         cur_my_pos = node.my_pos
         cur_adv_pos = node.adv_pos
         cur_my_turn = node.my_turn
-        for i in range(len(list_children)):
-            new_board, new_pos, new_dir = list_children[i]
+        list_new_board, list_new_pos, list_new_dir = list_children
+        for i in range(len(list_new_board)):
+            new_board, new_pos, new_dir = list_new_board[i], list_new_pos[i], list_new_dir[i]
             if cur_my_turn:
                 child = self.MCTSNode(new_board, new_pos, cur_adv_pos, False, node, new_dir)
             else:
@@ -106,43 +114,24 @@ class MCTSAgent(Agent):
             node.children.append(child)
             
     
-    def random_walk(self, board, my_pos, adv_pos, my_turn=True):
-        if my_turn:
-            temp=deepcopy(board)
+    def random_walk(self, board, my_pos, adv_pos):
+        temp=deepcopy(board)
+        result, util = self.check_endgame(temp, my_pos, adv_pos)
+        while (result != True):
+            myposstep=self.all_steps(temp,my_pos,adv_pos)
+            choice1 = np.random.randint(0, (len(myposstep)))
+            (x, y), dir = myposstep[choice1]
+            temp=self.set_barrier(temp, x, y, dir)
+            my_pos= (x, y)
             result, util = self.check_endgame(temp, my_pos, adv_pos)
-            while (result != True):
-                myposstep=self.all_steps(temp,my_pos,adv_pos)
-                choice1 = np.random.randint(0, (len(myposstep)-1))
-                (x, y), dir = myposstep[choice1]
-                temp=self.set_barrier(temp, x, y, dir)
-                my_pos= (x, y)
-                result, util = self.check_endgame(temp, my_pos, adv_pos)
-                if (result == True):
-                    return util
-                adsteps=self.all_steps(temp,adv_pos,my_pos)
-                choice2 = np.random.randint(0, (len(adsteps) - 1))
-                (x, y), dir = myposstep[choice2]
-                temp=self.set_barrier(temp, x, y, dir)
-                adv_pos = (x, y)
-                result, util = self.check_endgame(temp, my_pos, adv_pos)
-        else:
-            temp=deepcopy(board)
+            if (result == True):
+                return util
+            adsteps=self.all_steps(temp,adv_pos,my_pos)
+            choice2 = np.random.randint(0, (len(adsteps)))
+            (x, y), dir = adsteps[choice2]
+            temp=self.set_barrier(temp, x, y, dir)
+            adv_pos = (x, y)
             result, util = self.check_endgame(temp, my_pos, adv_pos)
-            while (result != True):
-                myposstep=self.all_steps(temp,adv_pos, my_pos)
-                choice1 = np.random.randint(0,len(myposstep))
-                (x, y), dir = myposstep[choice1]
-                temp=self.set_barrier(temp, x, y, dir)
-                adv_pos = (x, y)
-                result, util = self.check_endgame(temp, my_pos, adv_pos)
-                if (result == True):
-                    return util
-                adsteps=self.all_steps(temp,my_pos,adv_pos)
-                choice2 = np.random.randint(0, len(adsteps))
-                (x, y), dir = myposstep[choice2]
-                temp=self.set_barrier(temp, x, y, dir)
-                my_pos = (x, y)
-                result, util = self.check_endgame(temp, my_pos, adv_pos)
         return util
     
     def check_endgame(self, board, my_pos, adv_pos):
