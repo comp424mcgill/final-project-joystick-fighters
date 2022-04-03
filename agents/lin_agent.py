@@ -74,8 +74,8 @@ class LinAgent(Agent):
                         (x1, y1), dir1 = advsteps[j]
                         advpos1 = (x1, y1)
                         temp1 = self.set_barrier(temp1, x1, y1, dir1)
-                        result1, util1 = self.check_endgame(temp1, advpos1, mypos1)
-                        list_utility1[j] = -util1 * 100
+                        result1, util1 = self.check_endgame(temp1, mypos1, advpos1)
+                        list_utility1[j] = util1 * 100
                         if not result1:
                             mysteps = self.all_steps_possible(temp1, mypos1, advpos1, 1)  # my steps
                             if len(mysteps) > 0:
@@ -88,9 +88,9 @@ class LinAgent(Agent):
                                     list_utility2[k] = util2 * 100
                                     if not result2:
                                         temputil = 0
-                                        for z in range(100):
-                                            temputil += self.random_walk(board, (x2, y2), advpos1)*80
-                                        list_utility2[k]=temputil/100+2*sqrt(log(100)/100)
+                                        for z in range(10000):
+                                            temputil = self.randomwalk(board, (x2, y2), advpos1)*80+temputil
+                                        list_utility2[k]=temputil/10000+20*sqrt(log(10000)/10000)
                                 list_utility1[j] =self.findmaxind(list_utility2)
                     list_utility[i]=self.findminind(list_utility1)
         return self.findmaxid(list_utility)
@@ -103,7 +103,7 @@ class LinAgent(Agent):
         board[r + move[0], c + move[1], self.opposites[dir]] = True
         return board
 
-    def random_walk(self, board, my_pos, adv_pos):
+    def randomwalk(self, board, my_pos, adv_pos):
         """
         Randomly walk until reach end of game
 
@@ -180,15 +180,12 @@ class LinAgent(Agent):
         for r in range(board_size):
             for c in range(board_size):
                 father[(r, c)] = (r, c)
-
         def find(pos):
             if father[pos] != pos:
                 father[pos] = find(father[pos])
             return father[pos]
-
         def union(pos1, pos2):
             father[pos1] = pos2
-
         for r in range(board_size):
             for c in range(board_size):
                 for dir, move in enumerate(self.moves[1:3]):
@@ -209,7 +206,7 @@ class LinAgent(Agent):
         p1_score = list(father.values()).count(p1_r)
         if p0_r == p1_r:
             return False, 0
-        elif p0_score != p1_score:  # player 0 wins
+        if p0_score != p1_score:  # player 0 wins
             if p0_score > p1_score:
                 return True, 1
             else:
