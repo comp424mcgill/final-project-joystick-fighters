@@ -1,6 +1,7 @@
 # Student agent: Add your own agent here
 from hashlib import new
 from logging import root
+from tkinter.tix import Tree
 from agents.agent import Agent
 from constants import MAX_BOARD_SIZE
 from store import register_agent
@@ -29,8 +30,9 @@ class MCTSAgent(Agent):
         }
         self.moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
         self.opposites = {0: 2, 1: 3, 2: 0, 3: 1}
-        self.max_exp = 10 # max number of exploration
+        self.max_exp = 100 # max number of exploration
         self.max_depth = 1 # max number of depth of the tree
+        self.tree_root = None
         
 
     def step(self, chess_board, my_pos, adv_pos, max_step):
@@ -49,23 +51,46 @@ class MCTSAgent(Agent):
         Please check the sample implementation in agents/random_agent.py or agents/human_agent.py for more details.
         """
         # dummy return
-        tree_root = self.MCTSNode(chess_board, my_pos, adv_pos, True, None, None)
-        for i in range(self.max_exp):
-            node, _ = self.select_node(tree_root, tree_root.uct_val(), 0)
-            node.explored = True
-            self.add_children(node, self.find_all_children(chess_board, my_pos, adv_pos, node.my_turn))
-            rst = self.random_walk(chess_board, my_pos, adv_pos)
-            while(node!=None):
-                node.number_of_visits += 1
-                node.value += rst
-                node = node.parent
+        if self.tree_root==None:
+            self.tree_root = self.MCTSNode(chess_board, my_pos, adv_pos, True, None, None)
+            self.add_children(self.tree_root, self.find_all_children(chess_board, my_pos, adv_pos, True))
+            # exp_num = np.maximum(self.max_exp, len(self.tree_root.children))
+            for i in range(self.max_exp):
+                node, _ = self.select_node(self.tree_root, self.tree_root.uct_val(), 0)
+                node.explored = True
+                self.add_children(node, self.find_all_children(chess_board, my_pos, adv_pos, node.my_turn))
+                rst = self.random_walk(chess_board, my_pos, adv_pos)
+                while(node!=None):
+                    node.number_of_visits += 1
+                    node.value += rst
+                    node = node.parent
+                pass
+        else:
+            for i in range(len(self.tree_root.children)):
+                if np.array_equal(chess_board, self.tree_root.children[i].board):
+                        if self.tree_root.children[i].adv_pos==adv_pos:
+                            self.tree_root = self.tree_root.children[i]
+                            break
+            for i in range(self.max_exp):
+                node, _ = self.select_node(self.tree_root, self.tree_root.uct_val(), 0)
+                node.explored = True
+                self.add_children(node, self.find_all_children(chess_board, my_pos, adv_pos, node.my_turn))
+                rst = self.random_walk(chess_board, my_pos, adv_pos)
+                while(node!=None):
+                    node.number_of_visits += 1
+                    node.value += rst
+                    node = node.parent
+                pass
+                
         
-        new_pos, new_dir, rtn_val = None, None, -1
-        for i in range(len(tree_root.children)):
-            child = tree_root.children[i]
+        new_root, new_pos, new_dir, rtn_val = self.tree_root, None, None, -1
+        for i in range(len(self.tree_root.children)):
+            child = self.tree_root.children[i]
             child_val = child.value/(child.number_of_visits+0.001)
             if child_val > rtn_val:
-                new_pos, new_dir, rtn_val = child.my_pos, child.new_dir, child_val
+                new_root, new_pos, new_dir, rtn_val = child, child.my_pos, child.new_dir, child_val
+        
+        self.tree_root = new_root
         return new_pos, new_dir
     
     
