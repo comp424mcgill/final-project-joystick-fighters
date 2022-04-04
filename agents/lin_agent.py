@@ -77,7 +77,7 @@ class LinAgent(Agent):
             list_res[i]=result
 
         for i in range(len(list_res)):
-            if  list_res[i]==False:
+            if list_res[i] == False:
                 (x, y), dir = list_step1[i]
                 temp = board.copy()
                 temp = self.set_barrier(temp, x, y, dir)
@@ -99,6 +99,7 @@ class LinAgent(Agent):
                             break
                         list_utility1[j] = util1 * 100
                         list_res2[j] = result1
+                        list_utility[i] = util1 * 100
                     if not reachend:
                         for j in range(len(list_res2)):
                             if not list_res2[j] == False:
@@ -109,6 +110,7 @@ class LinAgent(Agent):
                                 mysteps = self.all_steps_possible(temp1, mypos1, advpos1)  # my steps
                                 if len(mysteps) > 0:
                                     vic = False
+                                    doom=True
                                     list_utility2 = [0] * len(mysteps)
                                     list_res3 = [False] * len(mysteps)
                                     for k in range(len(mysteps)):
@@ -122,9 +124,14 @@ class LinAgent(Agent):
                                             break
                                         list_utility2[k] = util2 * 100
                                         list_res3[k]=result2
-                                    if not vic:
+                                    for k in range(len(mysteps)):
+                                        if list_utility2[k] >0:
+                                            doom = False
+                                        elif result2==False:
+                                            doom = False
+                                    if not vic and doom:
                                         for k in range(len(list_res3)):
-                                            if not list_res3[k]==False:
+                                            if list_res3[k] == False:
                                                 temp2 = temp1.copy()
                                                 (x2, y2), dir2 = mysteps[k]
                                                 temp2 = self.set_barrier(temp2, x2, y2, dir2)
@@ -132,8 +139,8 @@ class LinAgent(Agent):
                                                 z=0
                                                 for z in range(100):
                                                     temputil = self.randomwalk(temp2, (x2, y2), advpos1)*80+temputil
-                                                list_utility2[k]=temputil/100+20*sqrt(log(100)/100)
-                                        list_utility1[j] =self.findmaxind(list_utility2)
+                                                list_utility2[k]=temputil/100+2*sqrt(log(100)/100)
+                                    list_utility1[j] =self.findmaxind(list_utility2)
                         list_utility[i]=self.findminind(list_utility1)
         return self.findmaxid(list_utility)
 
