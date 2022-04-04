@@ -45,7 +45,7 @@ class StudentAgent(Agent):
         """
         # dummy return
         list_step1=self.all_steps_possible(chess_board,my_pos, adv_pos)
-        temp=choice(chess_board,list_step1, adv_pos)
+        temp=self.choice(chess_board,list_step1, adv_pos)
         (x, y), dir=list_step1[temp]
         return (x, y), dir
 
@@ -94,16 +94,21 @@ class StudentAgent(Agent):
             if list_utility[i]>=0:
                 mustfail =True
         if mustfail:
-            return random.randint(len(list_step1))
+            return random.randint(0,(len(list_step1)-1))
         else:
             found=False
             while not found:
-                temp=random.randint(len(list_step1))
+                temp=random.randint(0,(len(list_step1)-1))
                 if list_utility[temp]==0:
                     found=True
         return temp
 
-
+    def findminind(selfself, listint):
+        min=listint[0]
+        for i in range(len(listint)):
+            if listint[i]<min:
+                min=listint[i]
+        return min
 
     def all_steps_possible(self, board, my_pos, adv_pos):
         list_step = []
