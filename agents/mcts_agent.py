@@ -30,6 +30,7 @@ class MCTSAgent(Agent):
         self.moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
         self.opposites = {0: 2, 1: 3, 2: 0, 3: 1}
         self.max_exp = 100 # max number of exploration
+        self.max_exp2 = 10
         self.max_depth = 1 # max number of depth of the tree
         self.tree_root = None
         
@@ -70,7 +71,7 @@ class MCTSAgent(Agent):
                         if self.tree_root.children[i].adv_pos==adv_pos:
                             self.tree_root = self.tree_root.children[i]
                             break
-            for i in range(self.max_exp):
+            for i in range(self.max_exp2):
                 node, _ = self.select_node(self.tree_root, self.tree_root.uct_val(), 0)
                 node.explored = True
                 self.add_children(node, self.find_all_children(chess_board, my_pos, adv_pos, node.my_turn))
