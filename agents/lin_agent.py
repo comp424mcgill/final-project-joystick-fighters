@@ -129,9 +129,9 @@ class LinAgent(Agent):
                                                 (x2, y2), dir2 = mysteps[k]
                                                 temp2 = self.set_barrier(temp2, x2, y2, dir2)
                                                 temputil = 0
-                                                for z in range(10):
+                                                for z in range(100):
                                                     temputil = self.randomwalk(temp2, (x2, y2), advpos1)*80+temputil
-                                                list_utility2[k]=temputil/10+20*sqrt(log(10)/10)
+                                                list_utility2[k]=temputil/100+20*sqrt(log(100)/100)
                                         list_utility1[j] =self.findmaxind(list_utility2)
                         list_utility[i]=self.findminind(list_utility1)
         return self.findmaxid(list_utility)
@@ -157,8 +157,7 @@ class LinAgent(Agent):
         """
         temp = board.copy()
         result, util = self.check_endgame(temp, my_pos, adv_pos)
-        depth = 2
-        for i in range(10):
+        while not result:
             advposstep = self.all_steps_possible(temp,adv_pos, my_pos)
             if len(advposstep)>0:
                 choice1 = self.conscience(temp,advposstep,my_pos)
@@ -181,7 +180,6 @@ class LinAgent(Agent):
                     return 0
             else:
                 return 0
-            depth += 1
 
         return util
 
