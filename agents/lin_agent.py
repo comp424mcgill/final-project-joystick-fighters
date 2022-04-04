@@ -37,7 +37,7 @@ class LinAgent(Agent):
 
     def step(self, chess_board, my_pos, adv_pos, max_step):
         # Moves (Up, Right, Down, Left)
-        possiblesteps=self.all_steps_possible(chess_board,my_pos, adv_pos,0)
+        possiblesteps=self.all_steps_possible(chess_board,my_pos, adv_pos)
         index= self.choice(chess_board, possiblesteps, adv_pos)
         (x, y), dir = possiblesteps[index]
         x1,y1=my_pos
@@ -45,17 +45,22 @@ class LinAgent(Agent):
 
     # find all possible steps given current board
 
-    def all_steps_possible(self, board, my_pos, adv_pos, depth):
+    def all_steps_possible(self, board, my_pos, adv_pos):
         list_step = []
         board_size = board.shape[0]
         for i in range(board_size):
             for j in range(board_size):
                 for k in range(4):
-                    if self.check_valid_step(board, np.array(my_pos), np.array([i, j]), k, adv_pos, depth):
-                        list_step.append(((i, j), k))
+                    if self.check_valid_step(board, np.array(my_pos), np.array([i, j]), k, adv_pos):
+                        temp = board.copy()
+                        temp = self.set_barrier(temp, i, j, k)
+                        result, util = self.check_endgame(temp, (i,j), adv_pos)
+                        if util>=0:
+                            list_step.append(((i, j), k))
         return list_step
 
     # find a list of successor board given current board
+
     def choice(self, board, list_step1, adv_pos):
         list_new_pos, list_new_dir = [], []
         list_utility = [0] * len(list_step1)
@@ -77,7 +82,7 @@ class LinAgent(Agent):
                 temp = board.copy()
                 temp = self.set_barrier(temp, x, y, dir)
                 mypos1 = (x, y)
-                advsteps = self.all_steps_possible(temp, adv_pos, mypos1, 1)  # adversary steps
+                advsteps = self.all_steps_possible(temp, adv_pos, mypos1)  # adversary steps
                 reachend=False
                 if len(advsteps) > 0:
                     list_utility1 = [0] * len(advsteps)
@@ -101,7 +106,7 @@ class LinAgent(Agent):
                                 (x1, y1), dir1 = advsteps[j]
                                 advpos1 = (x1, y1)
                                 temp1 = self.set_barrier(temp1, x1, y1, dir1)
-                                mysteps = self.all_steps_possible(temp1, mypos1, advpos1, 1)  # my steps
+                                mysteps = self.all_steps_possible(temp1, mypos1, advpos1)  # my steps
                                 if len(mysteps) > 0:
                                     vic = False
                                     list_utility2 = [0] * len(mysteps)
@@ -124,9 +129,9 @@ class LinAgent(Agent):
                                                 (x2, y2), dir2 = mysteps[k]
                                                 temp2 = self.set_barrier(temp2, x2, y2, dir2)
                                                 temputil = 0
-                                                for z in range(100):
+                                                for z in range(10):
                                                     temputil = self.randomwalk(temp2, (x2, y2), advpos1)*80+temputil
-                                                list_utility2[k]=temputil/100+20*sqrt(log(100)/100)
+                                                list_utility2[k]=temputil/10+20*sqrt(log(10)/10)
                                         list_utility1[j] =self.findmaxind(list_utility2)
                         list_utility[i]=self.findminind(list_utility1)
         return self.findmaxid(list_utility)
@@ -154,7 +159,7 @@ class LinAgent(Agent):
         result, util = self.check_endgame(temp, my_pos, adv_pos)
         depth = 2
         for i in range(10):
-            advposstep = self.all_steps_possible(temp,adv_pos, my_pos, depth)
+            advposstep = self.all_steps_possible(temp,adv_pos, my_pos)
             if len(advposstep)>0:
                 choice1 = random.randint(0, (len(advposstep) - 1))
                 (x, y), dir = advposstep[choice1]
@@ -163,7 +168,7 @@ class LinAgent(Agent):
                 result, util = self.check_endgame(temp, my_pos, adv_pos)
                 if result:
                     return util
-                mysteps = self.all_steps_possible(temp, adv_pos, my_pos, depth)
+                mysteps = self.all_steps_possible(temp, adv_pos, my_pos)
                 if len(mysteps)>0:
                     choice2 = random.randint(0, (len(mysteps) - 1))
                     (x1, y1), dir2 = mysteps[choice2]
@@ -246,7 +251,7 @@ class LinAgent(Agent):
         else:  # tie
             return True, 0
 
-    def check_valid_step(self, board, start_pos, end_pos, barrier_dir, adv_pos, depth):
+    def check_valid_step(self, board, start_pos, end_pos, barrier_dir, adv_pos):
         """
         Check if the step the agent takes is valid (reachable and within max steps).
 
@@ -278,7 +283,7 @@ class LinAgent(Agent):
         while state_queue and not is_reached:
             cur_pos, cur_step = state_queue.pop(0)
             r, c = cur_pos
-            if (cur_step + depth) == max_step:
+            if (cur_step) == max_step:
                 break
             for dir, move in enumerate(self.moves):
                 if board[r, c, dir]:
