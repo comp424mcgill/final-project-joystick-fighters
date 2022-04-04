@@ -1,9 +1,11 @@
 # Student agent: Add your own agent here
+from tracemalloc import start
 from agents.agent import Agent
 from store import register_agent
 import sys
 import numpy as np
 from copy import deepcopy
+import time
 
 
 @register_agent("stupid_agent")
@@ -46,9 +48,10 @@ class StupidAgent(Agent):
         Please check the sample implementation in agents/random_agent.py or agents/human_agent.py for more details.
         """
         # dummy return
+        start_time = time.time()
         if self.tree_root==None:
             self.tree_root = self.MCTSNode(chess_board, my_pos, adv_pos, True, None, None)
-            for i in range(self.max_first_exp): # for our first run, try to exploit the 30 seconds
+            while time.time()-start_time < 29.8:
                 node = self.uct_node(self.tree_root)
                 if node.my_turn:
                     sim_rst = self.random_walk(chess_board, my_pos, adv_pos)
@@ -65,7 +68,7 @@ class StupidAgent(Agent):
                         self.tree_root = self.tree_root.children[i]
                         self.tree_root.parent = None
                         break
-            for i in range(self.max_exp):
+            while time.time()-start_time < 1.9:
                 node = self.uct_node(self.tree_root)
                 if node.my_turn:
                     sim_rst = self.random_walk(chess_board, my_pos, adv_pos)
@@ -85,6 +88,7 @@ class StupidAgent(Agent):
         
         self.tree_root = new_root
         self.tree_root.parent = None
+        print("end time:", time.time()-start_time)
         return new_pos, new_dir
     
     
