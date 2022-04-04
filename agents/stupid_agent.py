@@ -27,8 +27,8 @@ class StupidAgent(Agent):
         self.moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
         self.opposites = {0: 2, 1: 3, 2: 0, 3: 1}
         self.tree_root = None
-        self.max_first_exp = 100
-        self.max_exp = 10
+        self.max_first_exp = 1000
+        self.max_exp = 100
 
     def step(self, chess_board, my_pos, adv_pos, max_step):
         """
@@ -109,7 +109,15 @@ class StupidAgent(Agent):
             return node
         elif len(node.children)==0: # visited but not expanded, add children and choose from children
             list_children = self.find_all_children(node.board, node.my_pos, node.adv_pos, node.my_turn)
-            node.children = self.children_nodes(list_children)
+            
+            (list_new_board, list_new_pos, list_new_dir), fixed_pos, turn = list_children
+            for i in range(len(list_new_board)):
+                new_board, new_pos, new_dir = list_new_board[i], list_new_pos[i], list_new_dir[i]
+                if turn:
+                    child = self.MCTSNode(new_board, new_pos, fixed_pos, False, node, new_dir)
+                else:
+                    child = self.MCTSNode(new_board, fixed_pos, new_pos, True, None, new_dir)
+                node.children.append(child)
             max_val = 0
             max_node = None
             for i in range(len(node.children)):
@@ -128,20 +136,6 @@ class StupidAgent(Agent):
                     max_val = cur_val
                     max_node = node.children[i]
             return self.uct_node(max_node)
-            
-    
-    # return a list of MCTS nodes, from a list of children
-    def children_nodes(self, list_children):
-        (list_new_board, list_new_pos, list_new_dir), fixed_pos, turn = list_children
-        rtn_list = []
-        for i in range(len(list_new_board)):
-            new_board, new_pos, new_dir = list_new_board[i], list_new_pos[i], list_new_dir[i]
-            if turn:
-                child = self.MCTSNode(new_board, new_pos, fixed_pos, False, None, new_dir)
-            else:
-                child = self.MCTSNode(new_board, fixed_pos, new_pos, True, None, new_dir)
-            rtn_list.append(child)
-        return rtn_list
 
         
     def random_walk(self, board, my_pos, adv_pos):
