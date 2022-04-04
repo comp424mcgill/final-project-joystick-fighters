@@ -50,7 +50,6 @@ class StudentAgent(Agent):
         return (x, y), dir
 
     def choice(self, board, list_step1, adv_pos):
-        list_new_pos, list_new_dir = [], []
         list_utility = [0] * len(list_step1)
         list_res=[False]*len(list_step1)
         for i in range(len(list_step1)):  # my steps
@@ -86,14 +85,14 @@ class StudentAgent(Agent):
                         list_utility1[j] = util1 * 100
                         list_res2[j] = result1
                         list_utility[i]=self.findminind(list_utility1)
-        mustfail=False
+        mustfail=True
         temp=0
         for i in range(len(list_step1)):
             if list_utility[i]==100:
                 return i
             if list_utility[i]>=0:
-                mustfail =True
-        if mustfail:
+                mustfail =False
+        if  mustfail:
             return random.randint(0,(len(list_step1)-1))
         else:
             found=False

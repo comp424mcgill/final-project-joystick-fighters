@@ -129,6 +129,7 @@ class LinAgent(Agent):
                                                 (x2, y2), dir2 = mysteps[k]
                                                 temp2 = self.set_barrier(temp2, x2, y2, dir2)
                                                 temputil = 0
+                                                z=0
                                                 for z in range(100):
                                                     temputil = self.randomwalk(temp2, (x2, y2), advpos1)*80+temputil
                                                 list_utility2[k]=temputil/100+20*sqrt(log(100)/100)
@@ -300,7 +301,6 @@ class LinAgent(Agent):
         return is_reached
 
     def conscience(self, board, list_step1, adv_pos):
-        list_new_pos, list_new_dir = [], []
         list_utility = [0] * len(list_step1)
         list_res=[False]*len(list_step1)
         for i in range(len(list_step1)):  # my steps
@@ -336,14 +336,14 @@ class LinAgent(Agent):
                         list_utility1[j] = util1 * 100
                         list_res2[j] = result1
                         list_utility[i]=self.findminind(list_utility1)
-        mustfail=False
+        mustfail=True
         temp=0
         for i in range(len(list_step1)):
             if list_utility[i]==100:
                 return i
             if list_utility[i]>=0:
-                mustfail =True
-        if mustfail:
+                mustfail =False
+        if  mustfail:
             return random.randint(0,(len(list_step1)-1))
         else:
             found=False
