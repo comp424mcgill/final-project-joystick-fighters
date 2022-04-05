@@ -28,8 +28,8 @@ class StudentAgent(Agent):
         self.opposites = {0: 2, 1: 3, 2: 0, 3: 1}
         self.max_my_reach = 2
         self.max_adv_reach = 2
-        self.my_barrier_score = np.array([-5,-4,-3,-2,-1])
-        self.adv_barrier_score = np.array([5,4,3,2,1])
+        self.my_barrier_score = np.array([-100,-4,-3,-2,-1])
+        self.adv_barrier_score = np.array([100,4,3,2,1])
 
     def step(self, chess_board, my_pos, adv_pos, max_step):
         """
@@ -197,16 +197,17 @@ class StudentAgent(Agent):
             elif (end_result, end_score) == (True, 0):
                 list_rm.append(i)
         list_rm.reverse()
-        for i in range(len(list_rm)): # removing losing position
-            list_new_board.pop(list_rm[i])
-            list_new_pos.pop(list_rm[i])
-            list_new_dir.pop(list_rm[i])
+        for j in range(len(list_rm)): # removing losing position
+            list_new_board.pop(list_rm[j])
+            list_new_pos.pop(list_rm[j])
+            list_new_dir.pop(list_rm[j])
         # we prefer:
         # position that is far away from wall and adv near wall
         # my_reach: get the number of barrier within the reach as a score, lower the better
         # adv_reach: get the number of barrier within the adversary's reach as a score, higher the better
         state_score = np.array([])
-        board_size = list_new_board[i].shape[0]
+        #print(len(list_new_board))
+        board_size = list_new_board[0].shape[0]
         for i in range(len(list_new_board)):
             score_i = 0
             r, c = list_new_pos[i]
