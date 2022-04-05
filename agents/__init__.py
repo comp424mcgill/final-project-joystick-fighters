@@ -10,5 +10,5 @@ from .mcts_agent import MCTSAgent
 from .stupid_agent import StupidAgent
 from .greedy_agent import GreedyAgent
 # temp class
-
+from .alfred_agent import AlfredAgent
 

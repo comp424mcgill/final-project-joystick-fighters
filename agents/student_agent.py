@@ -1,6 +1,5 @@
 # Student agent: Add your own agent here
 from copy import deepcopy
-from this import d
 from agents.agent import Agent
 from store import register_agent
 import sys
@@ -27,9 +26,9 @@ class StudentAgent(Agent):
         }
         self.moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
         self.opposites = {0: 2, 1: 3, 2: 0, 3: 1}
-        self.max_my_reach = 1
+        self.max_my_reach = 2
         self.max_adv_reach = 2
-        self.my_barrier_score = np.array([-1,-1,-1,-1,-1])
+        self.my_barrier_score = np.array([-3,-2,-1,-1,-1])
         self.adv_barrier_score = np.array([5000,400,1,1,1])
 
     def step(self, chess_board, my_pos, adv_pos, max_step):
@@ -199,6 +198,7 @@ class StudentAgent(Agent):
                 list_rm.append(i)
             elif (end_result, end_score) == (True, 0.5):
                 continue
+            '''
             else:
                 list_adv_new_board, list_adv_new_pos, list_adv_new_dir = self.all_next_state(list_new_board[i], list_new_pos[i], adv_pos, False)
                 for j in range(len(list_adv_new_board)):
@@ -206,6 +206,7 @@ class StudentAgent(Agent):
                     if (adv_result, adv_score) == (True, 1):
                         list_rm.append(i)
                         break
+            '''
         list_rm.reverse()
         for k in range(len(list_rm)): # removing losing position
             list_new_board.pop(list_rm[k])
@@ -224,7 +225,7 @@ class StudentAgent(Agent):
             for reach_row in range(self.max_my_reach*2):
                 for reach_col in range(self.max_my_reach*2):
                     if (c-self.max_my_reach-reach_col)<0 or (c-self.max_my_reach+reach_col)>=board_size or (r-self.max_my_reach-reach_row)<0 or (r-self.max_my_reach+reach_row)>=board_size:
-                            score_i -= 999
+                            score_i -= 10
                     if (r-self.max_my_reach-reach_row)>=0 and (r-self.max_my_reach+reach_row)<board_size:
                         if (c-self.max_my_reach-reach_col)>=0 and (c-self.max_my_reach+reach_col)<board_size:
                             score_i += self.my_barrier_score[np.abs(reach_row-self.max_my_reach)+np.abs(reach_col-self.max_my_reach)]*np.count_nonzero((list_new_board[i])[r-self.max_my_reach, c-self.max_my_reach])
@@ -232,30 +233,30 @@ class StudentAgent(Agent):
             if (r-ra)>0:
                 if (c-ca)>0:
                     if list_new_dir[i]==0 or list_new_dir[i]==3:
-                        score_i += 1
+                        score_i += 2
                 elif (c-ca)==0:
                     if list_new_dir[i]==0:
-                        score_i += 1
+                        score_i += 2
                 else:
                     if list_new_dir[i]==0 or list_new_dir[i]==1:
-                        score_i += 1
+                        score_i += 2
             elif (r-ra)==0:
                 if (c-ca)>0:
                     if list_new_dir[i]==3:
-                        score_i += 1
+                        score_i += 2
                 elif (c-ca)<0:
                     if list_new_dir[i]==1:
-                        score_i += 1
+                        score_i += 2
             elif (r-ra)<0:
                 if (c-ca)>0:
                     if list_new_dir[i]==2 or list_new_dir[i]==3:
-                        score_i += 1
+                        score_i += 2
                 elif (c-ca)==0:
                     if list_new_dir[i]==2:
-                        score_i += 1
+                        score_i += 2
                 else:
                     if list_new_dir[i]==1 or list_new_dir[i]==2:
-                        score_i += 1
+                        score_i += 2
             #for reach_row in range(self.max_adv_reach*2):
                 #if (r-self.max_adv_reach-reach_row)>=0 and (r-self.max_adv_reach+reach_row)<board_size:
                     #for reach_col in range(self.max_adv_reach*2):
