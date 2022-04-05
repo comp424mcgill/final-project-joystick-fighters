@@ -231,6 +231,7 @@ class World:
             if (
                 "SystemExit" in ex_type and isinstance(cur_player, HumanAgent)
             ) or "KeyboardInterrupt" in ex_type:
+
                 sys.exit(0)
             print(
                 "An exception raised. The traceback is as follows:\n{}".format(

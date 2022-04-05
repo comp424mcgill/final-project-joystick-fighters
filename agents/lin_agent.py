@@ -117,13 +117,13 @@ class LinAgent(Agent):
                 tmputil = 0
                 simnum=((board.shape[0] + 1) // 2) ** 2
                 for z in range(simnum//len(list_step1)):
-                    tmputil+=100*self.randomwalk(temp,mypos1,adv_pos,board.shape[0])
+                    tmputil+=100*self.randomwalk(temp,mypos1,adv_pos)
                     if z > 1 and tmputil<0:
                         break
                 list_utility[i]=tmputil/(z+1)+2*sqrt(log(z+1)/(z+1))
                 if tmputil>0:
-                    rand=False
-        cos=0;
+                    Rand=False
+        cos=0
         if Rand==False:
             return self.findmaxid(list_utility)
         else:
@@ -142,12 +142,12 @@ class LinAgent(Agent):
         board[r + move[0], c + move[1], self.opposites[dir]] = True
         return board
 
-    def randomwalk(self, board, my_pos, adv_pos, depth):
+    def randomwalk(self, board, my_pos, adv_pos):
         temp = board.copy()
         result, util = self.check_endgame(temp, my_pos, adv_pos)
         if result:
             return util
-        for z in range(depth):
+        while not result:
             advposstep = self.all_steps_possible(temp,adv_pos, my_pos)
             if len(advposstep)>0:
                 choice1 = self.conscience(temp,advposstep,my_pos)
