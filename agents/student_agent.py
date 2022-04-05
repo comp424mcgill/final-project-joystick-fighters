@@ -52,6 +52,7 @@ class StudentAgent(Agent):
     def choice(self, board, list_step1, adv_pos):
         list_utility = [0] * len(list_step1)
         list_res=[False]*len(list_step1)
+        mustfail = True
         for i in range(len(list_step1)):  # my steps
             temp = board.copy()
             (x, y), dir = list_step1[i]
@@ -60,6 +61,8 @@ class StudentAgent(Agent):
             result, util = self.check_endgame(temp, mypos1, adv_pos)
             if util==1:
                 return i
+            if util==0 and result:
+                mustfail =False
             list_utility[i] = util * 100
             list_res[i]=result
 
@@ -70,9 +73,8 @@ class StudentAgent(Agent):
                 temp = self.set_barrier(temp, x, y, dir)
                 mypos1 = (x, y)
                 advsteps = self.all_steps_possible(temp, adv_pos, mypos1)  # adversary steps
+                list_utility[i]=100
                 if len(advsteps) > 0:
-                    list_utility1 = [0] * len(advsteps)
-                    list_res2 = [False] * len(advsteps)
                     for j in range(len(advsteps)):
                         temp1 = temp.copy()
                         (x1, y1), dir1 = advsteps[j]
@@ -82,23 +84,21 @@ class StudentAgent(Agent):
                         if util1==-1:
                             list_utility[i]=util1*100
                             break
-                        list_utility1[j] = util1 * 100
-                        list_res2[j] = result1
-                        list_utility[i]=self.findminind(list_utility1)
-        mustfail=True
+                        if list_utility[i]!=-100 and util1==0:
+                            list_utility[i]=0
+                    if  list_utility[i]>=0:
+                        mustfail=False
         temp=0
         for i in range(len(list_step1)):
             if list_utility[i]==100:
                 return i
-            if list_utility[i]>=0:
-                mustfail =False
         if  mustfail:
             return random.randint(0,(len(list_step1)-1))
         else:
             found=False
             while not found:
                 temp=random.randint(0,(len(list_step1)-1))
-                if list_utility[temp]==0:
+                if list_utility[temp]>=0:
                     found=True
         return temp
 
