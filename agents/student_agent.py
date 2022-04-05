@@ -4,6 +4,7 @@ from agents.agent import Agent
 from store import register_agent
 import sys
 import numpy as np
+import time
 
 
 @register_agent("student_agent")
