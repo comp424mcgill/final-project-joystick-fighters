@@ -1,5 +1,6 @@
 # Student agent: Add your own agent here
 from copy import deepcopy
+from this import d
 from agents.agent import Agent
 from store import register_agent
 import sys
@@ -26,10 +27,10 @@ class StudentAgent(Agent):
         }
         self.moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
         self.opposites = {0: 2, 1: 3, 2: 0, 3: 1}
-        self.max_my_reach = 2
+        self.max_my_reach = 1
         self.max_adv_reach = 2
-        self.my_barrier_score = np.array([-100,-4,-3,-2,-1])
-        self.adv_barrier_score = np.array([100,4,3,2,1])
+        self.my_barrier_score = np.array([-1,-1,-1,-1,-1])
+        self.adv_barrier_score = np.array([5000,400,1,1,1])
 
     def step(self, chess_board, my_pos, adv_pos, max_step):
         """
@@ -196,11 +197,20 @@ class StudentAgent(Agent):
                 return list_new_pos[i], list_new_dir[i]
             elif (end_result, end_score) == (True, 0):
                 list_rm.append(i)
+            elif (end_result, end_score) == (True, 0.5):
+                continue
+            else:
+                list_adv_new_board, list_adv_new_pos, list_adv_new_dir = self.all_next_state(list_new_board[i], list_new_pos[i], adv_pos, False)
+                for j in range(len(list_adv_new_board)):
+                    adv_result, adv_score = self.check_endgame(list_adv_new_board[j], list_adv_new_pos[j], list_new_pos[i])
+                    if (adv_result, adv_score) == (True, 1):
+                        list_rm.append(i)
+                        break
         list_rm.reverse()
-        for j in range(len(list_rm)): # removing losing position
-            list_new_board.pop(list_rm[j])
-            list_new_pos.pop(list_rm[j])
-            list_new_dir.pop(list_rm[j])
+        for k in range(len(list_rm)): # removing losing position
+            list_new_board.pop(list_rm[k])
+            list_new_pos.pop(list_rm[k])
+            list_new_dir.pop(list_rm[k])
         # we prefer:
         # position that is far away from wall and adv near wall
         # my_reach: get the number of barrier within the reach as a score, lower the better
@@ -212,18 +222,48 @@ class StudentAgent(Agent):
             score_i = 0
             r, c = list_new_pos[i]
             for reach_row in range(self.max_my_reach*2):
-                if (r-self.max_my_reach-reach_row)>=0 and (r-self.max_my_reach+reach_row)<board_size:
-                    for reach_col in range(self.max_my_reach*2):
+                for reach_col in range(self.max_my_reach*2):
+                    if (c-self.max_my_reach-reach_col)<0 or (c-self.max_my_reach+reach_col)>=board_size or (r-self.max_my_reach-reach_row)<0 or (r-self.max_my_reach+reach_row)>=board_size:
+                            score_i -= 999
+                    if (r-self.max_my_reach-reach_row)>=0 and (r-self.max_my_reach+reach_row)<board_size:
                         if (c-self.max_my_reach-reach_col)>=0 and (c-self.max_my_reach+reach_col)<board_size:
                             score_i += self.my_barrier_score[np.abs(reach_row-self.max_my_reach)+np.abs(reach_col-self.max_my_reach)]*np.count_nonzero((list_new_board[i])[r-self.max_my_reach, c-self.max_my_reach])
-            r, c = adv_pos
-            for reach_row in range(self.max_adv_reach*2):
-                if (r-self.max_adv_reach-reach_row)>=0 and (r-self.max_adv_reach+reach_row)<board_size:
-                    for reach_col in range(self.max_adv_reach*2):
-                        if (c-self.max_adv_reach-reach_col)>=0 and (c-self.max_adv_reach+reach_col)<board_size:
-                            score_i += self.adv_barrier_score[np.abs(reach_row-self.max_adv_reach)+np.abs(reach_col-self.max_adv_reach)]*np.count_nonzero((list_new_board[i])[r-self.max_adv_reach, c-self.max_adv_reach])
+            ra, ca = adv_pos
+            if (r-ra)>0:
+                if (c-ca)>0:
+                    if list_new_dir[i]==0 or list_new_dir[i]==3:
+                        score_i += 1
+                elif (c-ca)==0:
+                    if list_new_dir[i]==0:
+                        score_i += 1
+                else:
+                    if list_new_dir[i]==0 or list_new_dir[i]==1:
+                        score_i += 1
+            elif (r-ra)==0:
+                if (c-ca)>0:
+                    if list_new_dir[i]==3:
+                        score_i += 1
+                elif (c-ca)<0:
+                    if list_new_dir[i]==1:
+                        score_i += 1
+            elif (r-ra)<0:
+                if (c-ca)>0:
+                    if list_new_dir[i]==2 or list_new_dir[i]==3:
+                        score_i += 1
+                elif (c-ca)==0:
+                    if list_new_dir[i]==2:
+                        score_i += 1
+                else:
+                    if list_new_dir[i]==1 or list_new_dir[i]==2:
+                        score_i += 1
+            #for reach_row in range(self.max_adv_reach*2):
+                #if (r-self.max_adv_reach-reach_row)>=0 and (r-self.max_adv_reach+reach_row)<board_size:
+                    #for reach_col in range(self.max_adv_reach*2):
+                        #if (c-self.max_adv_reach-reach_col)>=0 and (c-self.max_adv_reach+reach_col)<board_size:
+                            #score_i += self.adv_barrier_score[np.abs(reach_row-self.max_adv_reach)+np.abs(reach_col-self.max_adv_reach)]*np.count_nonzero((list_new_board[i])[r-self.max_adv_reach, c-self.max_adv_reach])
             state_score = np.append(state_score, score_i)
-        best_idx = np.argmax(state_score)
-        best_pos = list_new_pos[best_idx]
-        best_dir = list_new_dir[best_idx]
+        best_idx = (np.argwhere(state_score==np.amax(state_score))).ravel()
+        rand_idx = best_idx[np.random.randint(len(best_idx))]
+        best_pos = list_new_pos[rand_idx]
+        best_dir = list_new_dir[rand_idx]
         return best_pos, best_dir

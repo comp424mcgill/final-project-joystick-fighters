@@ -8,6 +8,7 @@ from .lin_agent import LinAgent
 
 from .mcts_agent import MCTSAgent
 from .stupid_agent import StupidAgent
+from .greedy_agent import GreedyAgent
 # temp class
 
 
