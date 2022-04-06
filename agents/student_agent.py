@@ -129,9 +129,10 @@ class StudentAgent(Agent):
             uy=y+max_step+1
         for i in range(lx,ux):
             for j in range(ly,uy):
-                for k in range(4):
-                    if self.check_valid_step(board, np.array(my_pos), np.array([i, j]), k, adv_pos):
-                        list_step.append(((i, j), k))
+                if(abs(i-x)+abs(j-y))<=max_step:
+                    for k in range(4):
+                        if self.check_valid_step(board, np.array(my_pos), np.array([i, j]), k, adv_pos):
+                            list_step.append(((i, j), k))
         return list_step
 
     def set_barrier(self, board, r, c, dir):

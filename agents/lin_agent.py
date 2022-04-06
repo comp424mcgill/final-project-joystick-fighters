@@ -65,9 +65,10 @@ class LinAgent(Agent):
             uy=y+max_step+1
         for i in range(lx,ux):
             for j in range(ly,uy):
-                for k in range(4):
-                    if self.check_valid_step(board, np.array(my_pos), np.array([i, j]), k, adv_pos):
-                        list_step.append(((i, j), k))
+                if(abs(i-x)+abs(j-y))<=max_step:
+                    for k in range(4):
+                        if self.check_valid_step(board, np.array(my_pos), np.array([i, j]), k, adv_pos):
+                            list_step.append(((i, j), k))
         return list_step
     # find a list of successor board given current board
 
@@ -154,7 +155,8 @@ class LinAgent(Agent):
 
     def randomwalk(self, board, my_pos, adv_pos):
         temp = board.copy()
-        result, util = self.check_endgame(temp, my_pos, adv_pos)
+        result=False
+        util=0
         if result:
             return util
         while not result:
@@ -164,8 +166,6 @@ class LinAgent(Agent):
                 (x, y), dir = advposstep[choice1]
                 temp = self.set_barrier(temp, x, y, dir)
                 adv_pos = (x, y)
-                if result:
-                    return util
                 mysteps = self.all_steps_possible(temp, adv_pos, my_pos)
                 if len(mysteps)>0:
                     choice2 = self.conscience(temp,mysteps,adv_pos)
@@ -179,7 +179,6 @@ class LinAgent(Agent):
                     return 0
             else:
                 return 0
-
         return util
 
 
