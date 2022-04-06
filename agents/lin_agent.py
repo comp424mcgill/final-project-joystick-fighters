@@ -39,7 +39,6 @@ class LinAgent(Agent):
         possiblesteps = self.all_steps_possible(chess_board, my_pos, adv_pos)
         index = self.choice(chess_board, possiblesteps, adv_pos, my_pos)
         (x, y), dir = possiblesteps[index]
-        x1, y1 = my_pos
         return (x, y), dir
 
     def preference(self, board,list_step, adv_pos, my_pos):
@@ -49,6 +48,8 @@ class LinAgent(Agent):
         ya = adv_pos[1]
         pref = [0] * len(list_step)
         max_step = (board.shape[0] + 1) // 2
+        if max_step>3:
+            max_step=3
         for i in range(len(list_step)):
             (x, y), dir = list_step[i]
             if abs(y - ya) < abs(ym - ya) :
@@ -118,6 +119,7 @@ class LinAgent(Agent):
                 mypos1 = (x, y)
                 advsteps = self.all_steps_possible(temp, adv_pos, mypos1)  # adversary steps
                 list_utility[i] = 100
+                nottie=False
                 if len(advsteps) > 0:
                     for j in range(len(advsteps)):
                         temp1 = temp.copy()
@@ -129,10 +131,24 @@ class LinAgent(Agent):
                             list_utility[i] = util1 * 100
                             list_res[i] = result1
                             break
-                        if list_utility[i] != -100 and util1 == 0:
+                        if list_utility[i] != -100 and list_res[i] and util1 == 0 and not result1:
+                            dangertest = self.all_steps_possible(temp1, advpos1, mypos1)
+                            trap=self.primitive(temp1,dangertest,mypos1)
+                            if trap:
+                                list_utility[i] = -100
+                                list_res[i] = result1
+                                break
+                            else:
+                                list_utility[i] = 0
+                                list_res[i]=False
+                                nottie=True
+                        if list_utility[i] != -100  and util1 == 0 and  result1 and not nottie:
                             list_utility[i] = 0
+                            list_res[i]=True
+
                     if list_utility[i] >= 0:
                         mustfail = False
+
         for i in range(len(list_step1)):
             if list_utility[i] == 100:
                 return i
@@ -150,7 +166,7 @@ class LinAgent(Agent):
                     tmputil = 0
                     simnum = ((board.shape[0] + 1) // 2) ** 2
                     for z in range(simnum // len(list_step1)):
-                        tmputil += 100 * self.strictrandomwalk(temp, mypos1, adv_pos)
+                        tmputil += 300 * self.strictrandomwalk(temp, mypos1, adv_pos)
                         if z > 1 and tmputil < 0:
                             break
                     list_utility[i] = tmputil / (z + 1) + 2 * sqrt(log(z + 1) / (z + 1))
@@ -170,7 +186,7 @@ class LinAgent(Agent):
                 tmputil = 0
                 simnum = ((board.shape[0] + 1)//2) ** 2
                 for z in range(simnum // len(list_step1)):
-                    tmputil += 100 * self.randomwalk(temp, mypos1, adv_pos)
+                    tmputil += 300 * self.randomwalk(temp, mypos1, adv_pos)
                     if z > 1 and tmputil < 0:
                         break
                 list_utility[i] = tmputil / (z + 1) + 2 * sqrt(log(z + 1) / (z + 1))
@@ -430,3 +446,14 @@ class LinAgent(Agent):
                 if list_utility[temp] >= 0:
                     found = True
         return temp
+
+    def primitive(self, board, list_step1, adv_pos):
+        for i in range(len(list_step1)):  # my steps
+                temp = board.copy()
+                (x, y), dir = list_step1[i]
+                temp = self.set_barrier(temp, x, y, dir)
+                mypos1 = (x, y)
+                result, util = self.check_endgame(temp, mypos1, adv_pos)
+                if util == 1:
+                    return True
+        return False
