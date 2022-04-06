@@ -191,6 +191,9 @@ class StudentAgent(Agent):
     def rand_simulation(self, board, my_pos, adv_pos, my_turn):
         temp = deepcopy(board)
         if my_turn:
+            pass
+        
+        if my_turn:
             result, util = self.check_endgame(temp, my_pos, adv_pos)
             while (result != True):
                 myposstep=self.all_steps(temp,my_pos,adv_pos)
