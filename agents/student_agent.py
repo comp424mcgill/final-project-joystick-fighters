@@ -2,7 +2,6 @@
 from copy import deepcopy
 from agents.agent import Agent
 from store import register_agent
-import sys
 import numpy as np
 import time
 
@@ -46,6 +45,7 @@ class StudentAgent(Agent):
         """
         # dummy return
         start_time = time.time()
+        self.board_size = chess_board.shape[0]
         list_new_board, list_new_pos, list_new_dir = self.all_next_state(chess_board, my_pos, adv_pos, True)
         list_rm = []
         for i in range(len(list_new_board)):
@@ -70,16 +70,163 @@ class StudentAgent(Agent):
             list_new_board.pop(list_rm[k])
             list_new_pos.pop(list_rm[k])
             list_new_dir.pop(list_rm[k])
+            
+        self.center = (self.board_size-1)/2
+        
         zip_list = list(zip(list_new_board, list_new_pos, list_new_dir))
         np.random.shuffle(zip_list)
         shuffle_new_board, shuffle_new_pos, shuffle_new_dir = zip(*zip_list)
         shuffle_new_board = np.array(shuffle_new_board)
         shuffle_new_pos = list(shuffle_new_pos)
         shuffle_new_dir = list(shuffle_new_dir)
+        rand_pos, rand_dir = shuffle_new_pos[0], shuffle_new_dir[0]
+        
+        score = np.array([])
+        for i in range(len(list_new_board)):
+            x1, y1 = list_new_pos[i]
+            x2, y2 = adv_pos
+            score = np.append(score, np.abs(x1-x2)+np.abs(y1-y2)+np.abs(x1-self.center)+np.abs(x2-self.center))
+            if x1 > self.center:
+                if y1 > self.center:
+                    if list_new_dir[i]==0 or list_new_dir[i]==3:
+                        score[i] -= 1
+                elif y1 == self.center:
+                    if list_new_dir[i]==0:
+                        score[i] -= 1
+                else:
+                    if list_new_dir[i]==0 or list_new_dir[i]==1:
+                        score[i] -= 1
+            elif x1 == self.center:
+                if y1 > self.center:
+                    if list_new_dir[i]==3:
+                        score[i] -= 1
+                else:
+                    if list_new_dir[i]==1:
+                        score[i] -= 1
+            else:
+                if y1 > self.center:
+                    if list_new_dir[i]==2 or list_new_dir[i]==3:
+                        score[i] -= 1
+                elif y1 == self.center:
+                    if list_new_dir[i]==2:
+                        score[i] -= 1
+                else:
+                    if list_new_dir[i]==1 or list_new_dir[i]==2:
+                        score[i] -= 1
+        list_center_idx = np.argsort(score)
+        center_board, center_pos, center_dir = list_new_board[list_center_idx[0]], list_new_pos[list_center_idx[0]], list_new_dir[list_center_idx[0]]
+        if self.root_node == None:
+            self.root_node = self.MCTSNode(center_board, center_pos, adv_pos, False, None, None)
+            self.root_node.n += 1
+            print("Time1:", time.time()-start_time)
+            self.root_node.v += self.rand_simulation(center_board, center_pos, adv_pos, False)
+            print("Time2:", time.time()-start_time)
+            list_new_adv_board, list_new_adv_pos, list_new_adv_dir = self.all_next_state(chess_board, my_pos, adv_pos, False)
+            for i in range(len(list_new_adv_board)):
+                self.root_node.children.append(self.MCTSNode(list_new_adv_board[i], center_pos, list_new_adv_pos[i], True, self.root_node, list_new_adv_dir[i]))
+            it = 0
+            while (time.time()-start_time) < 29.0:
+                it += 1
+                print("Iteration:", it, "at time:", time.time()-start_time)
+                node = self.uct(self.root_node)
+                sim_rst = self.rand_simulation(node.board, node.my_pos, node.adv_pos, node.my_turn)
+                while(node!=None):
+                    node.n += 1
+                    node.v += sim_rst
+                    node = node.parent
+                max_node_val = self.root_node.children[0].v
+                max_node = self.root_node.children[0]
+                for j in range(len(self.root_node.children)):
+                    if (self.root_node.children[j].v/(self.root_node.children[j].n+0.001)) > max_node_val:
+                        max_node_val = (self.root_node.children[j].v/(self.root_node.children[j].n+0.001))
+                        max_node = self.root_node.children[j]
+            print("total iteration in 30s:", it)
+            max_node.parent = None
+            self.root_node = max_node
+            return center_pos, center_dir
+        else:
+            while (time.time()-start_time) <1.8:
+                
+                pass
+        
         end_time = time.time()
         print(end_time-start_time)
         
-        return shuffle_new_pos[0], shuffle_new_dir[0]
+        return center_pos, center_dir
+    
+    
+    class MCTSNode():
+        def __init__(self, board, my_pos, adv_pos, my_turn, parent, new_dir):
+            self.board = board
+            self.my_pos = my_pos
+            self.adv_pos = adv_pos
+            self.my_turn = my_turn
+            self.parent = parent
+            self.children = []
+            self.new_dir = new_dir
+            self.n = 0
+            self.v = 0
+            
+        # for a node, return the uct node to do random simulation
+    def uct(self, node):
+        if node.n==0:
+            return node
+        uct_val = np.array([])
+        for i in range(len(node.children)):
+            temp = node.children[i].v/(node.children[i].n+0.001) + np.sqrt(2*node.n/(node.children[i].n+0.001))
+            uct_val = np.append(uct_val, temp)
+        max_idx = np.argmax(uct_val)
+        if node.children[max_idx].n==0:
+            list_new_board, list_new_pos, list_new_dir = self.all_next_state(node.children[max_idx].board, node.children[max_idx].my_pos, node.children[max_idx].adv_pos, (node.children[max_idx].my_turn))
+            for i in range(len(list_new_board)):
+                if node.children[max_idx].my_turn:
+                    node.children.append(self.MCTSNode(list_new_board[i], list_new_pos[i], node.children[max_idx].adv_pos, False, node.children[max_idx], list_new_dir[i]))
+                else:
+                    node.children.append(self.MCTSNode(list_new_board[i], node.children[max_idx].my_pos, list_new_pos[i], True, node.children[max_idx], list_new_dir[i]))
+            return node.children[max_idx]
+        else:
+            return self.uct(node.children[max_idx])
+        
+        
+    def rand_simulation(self, board, my_pos, adv_pos, my_turn):
+        temp = deepcopy(board)
+        if my_turn:
+            result, util = self.check_endgame(temp, my_pos, adv_pos)
+            while (result != True):
+                myposstep=self.all_steps(temp,my_pos,adv_pos)
+                choice1 = np.random.randint(0, (len(myposstep)))
+                (x, y), dir = myposstep[choice1]
+                temp=self.set_barrier(temp, x, y, dir)
+                my_pos= (x, y)
+                result, util = self.check_endgame(temp, my_pos, adv_pos)
+                if (result == True):
+                    return util
+                adsteps=self.all_steps(temp,adv_pos,my_pos)
+                choice2 = np.random.randint(0, (len(adsteps)))
+                (x, y), dir = adsteps[choice2]
+                temp=self.set_barrier(temp, x, y, dir)
+                adv_pos = (x, y)
+                result, util = self.check_endgame(temp, my_pos, adv_pos)
+            return util
+        else:
+            result, util = self.check_endgame(temp, my_pos, adv_pos)
+            while (result != True):
+                myposstep=self.all_steps(temp,adv_pos,my_pos)
+                choice1 = np.random.randint(0, (len(myposstep)))
+                (x, y), dir = myposstep[choice1]
+                temp=self.set_barrier(temp, x, y, dir)
+                adv_pos= (x, y)
+                result, util = self.check_endgame(temp, my_pos, adv_pos)
+                if (result == True):
+                    return util
+                adsteps=self.all_steps(temp,my_pos, adv_pos)
+                choice2 = np.random.randint(0, (len(adsteps)))
+                (x, y), dir = adsteps[choice2]
+                temp=self.set_barrier(temp, x, y, dir)
+                my_pos = (x, y)
+                result, util = self.check_endgame(temp, my_pos, adv_pos)
+            return util
+    
     
     def check_endgame(self, board, my_pos, adv_pos):
         father = dict()

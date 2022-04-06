@@ -343,6 +343,7 @@ class MCTS:
             node.getStatus().increaseWinNumber()
 
     def randomplay(self,node):
+        st = time.time()
         current_chess_board = deepcopy(node.getStatus())
         #current_turn = current_chess_board.getTurn()
 
@@ -380,6 +381,7 @@ class MCTS:
             
             #else:
                 #print("lose")
+        print("end time:", time.time()-st)
         return result   # 0 my win, 1 adv win, -1 tie
 
     def randomstep(self,chess_board_status):
