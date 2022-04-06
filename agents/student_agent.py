@@ -119,7 +119,7 @@ class StudentAgent(Agent):
             self.root_node = self.MCTSNode(center_board, center_pos, adv_pos, False, None, None)
             self.root_node.n += 1
             print("Time1:", time.time()-start_time)
-            self.root_node.v += self.rand_simulation(center_board, center_pos, adv_pos, False)
+            self.root_node.v += self.rand_simulation(center_board, center_pos, adv_pos, False, max_step)
             print("Time2:", time.time()-start_time)
             list_new_adv_board, list_new_adv_pos, list_new_adv_dir = self.all_next_state(chess_board, my_pos, adv_pos, False)
             for i in range(len(list_new_adv_board)):
@@ -129,7 +129,7 @@ class StudentAgent(Agent):
                 it += 1
                 print("Iteration:", it, "at time:", time.time()-start_time)
                 node = self.uct(self.root_node)
-                sim_rst = self.rand_simulation(node.board, node.my_pos, node.adv_pos, node.my_turn)
+                sim_rst = self.rand_simulation(node.board, node.my_pos, node.adv_pos, node.my_turn, max_step)
                 while(node!=None):
                     node.n += 1
                     node.v += sim_rst
@@ -188,9 +188,10 @@ class StudentAgent(Agent):
             return self.uct(node.children[max_idx])
         
         
-    def rand_simulation(self, board, my_pos, adv_pos, my_turn):
+    def rand_simulation(self, board, my_pos, adv_pos, my_turn, max_step):
         temp = deepcopy(board)
         if my_turn:
+            
             pass
         
         if my_turn:
