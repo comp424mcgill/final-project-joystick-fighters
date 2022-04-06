@@ -189,47 +189,37 @@ class StudentAgent(Agent):
         
         
     def rand_simulation(self, board, my_pos, adv_pos, my_turn, max_step):
-        temp = deepcopy(board)
         if my_turn:
-            
-            pass
-        
-        if my_turn:
+            temp = deepcopy(board)
             result, util = self.check_endgame(temp, my_pos, adv_pos)
-            while (result != True):
-                myposstep=self.all_steps(temp,my_pos,adv_pos)
-                choice1 = np.random.randint(0, (len(myposstep)))
-                (x, y), dir = myposstep[choice1]
-                temp=self.set_barrier(temp, x, y, dir)
-                my_pos= (x, y)
-                result, util = self.check_endgame(temp, my_pos, adv_pos)
-                if (result == True):
-                    return util
-                adsteps=self.all_steps(temp,adv_pos,my_pos)
-                choice2 = np.random.randint(0, (len(adsteps)))
-                (x, y), dir = adsteps[choice2]
-                temp=self.set_barrier(temp, x, y, dir)
-                adv_pos = (x, y)
-                result, util = self.check_endgame(temp, my_pos, adv_pos)
-            return util
+            if result==True:
+                return util
+            else:
+                r, c = my_pos
+                rand_step = np.random.randint(1, max_step+1)
+                for i in range(rand_step):
+                    dir = np.random.permutation(4)
+                    for j in range(4):
+                        rand_dir = dir[j]
+                        if (temp[r,c])[rand_dir] == False:
+                            break
+                    if rand_dir==0:
+                        r -= 1
+                    elif rand_dir==1:
+                        c += 1
+                    elif rand_dir==2:
+                        r += 1
+                    else:
+                        c -= 1
+                rand_barrier_dir = np.random.permutation(4)
+                for i in range(4):
+                    b_dir = rand_barrier_dir[i]
+                    if (temp[r,c])[b_dir] == False:
+                        break
+                    temp = self.set_barrier(temp, r, c, rand_dir)
+            return self.rand_simulation(temp, (r,c), adv_pos, False, max_step)
         else:
-            result, util = self.check_endgame(temp, my_pos, adv_pos)
-            while (result != True):
-                myposstep=self.all_steps(temp,adv_pos,my_pos)
-                choice1 = np.random.randint(0, (len(myposstep)))
-                (x, y), dir = myposstep[choice1]
-                temp=self.set_barrier(temp, x, y, dir)
-                adv_pos= (x, y)
-                result, util = self.check_endgame(temp, my_pos, adv_pos)
-                if (result == True):
-                    return util
-                adsteps=self.all_steps(temp,my_pos, adv_pos)
-                choice2 = np.random.randint(0, (len(adsteps)))
-                (x, y), dir = adsteps[choice2]
-                temp=self.set_barrier(temp, x, y, dir)
-                my_pos = (x, y)
-                result, util = self.check_endgame(temp, my_pos, adv_pos)
-            return util
+            return -self.rand_simulation(board, adv_pos, my_pos, True, max_step)
     
     
     def check_endgame(self, board, my_pos, adv_pos):
