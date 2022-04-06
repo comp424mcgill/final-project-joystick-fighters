@@ -19,7 +19,7 @@ class StupidAgent(Agent):
         super(StupidAgent, self).__init__()
         self.name = "StupidAgent"
         self.autoplay = True
-        
+
         self.dir_map = {
             "u": 0,
             "r": 1,
@@ -28,9 +28,10 @@ class StupidAgent(Agent):
         }
         self.moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
         self.opposites = {0: 2, 1: 3, 2: 0, 3: 1}
-        self.tree_root = None
-        self.max_first_exp = 1000
-        self.max_exp = 100
+        self.max_my_reach = 1
+        self.max_adv_reach = 2
+        self.my_barrier_score = np.array([-1, -1, -1, -1, -1])
+        self.adv_barrier_score = np.array([5000, 400, 1, 1, 1])
 
     def step(self, chess_board, my_pos, adv_pos, max_step):
         """
@@ -48,164 +49,51 @@ class StupidAgent(Agent):
         Please check the sample implementation in agents/random_agent.py or agents/human_agent.py for more details.
         """
         # dummy return
-        start_time = time.time()
-        if self.tree_root==None:
-            self.tree_root = self.MCTSNode(chess_board, my_pos, adv_pos, True, None, None)
-            while time.time()-start_time < 29.8:
-                node = self.uct_node(self.tree_root)
-                if node.my_turn:
-                    sim_rst = self.random_walk(chess_board, my_pos, adv_pos)
-                else:
-                    sim_rst = self.random_walk(chess_board, adv_pos, my_pos)
-                while(node!=None):
-                    node.n += 1
-                    node.v += sim_rst
-                    node = node.parent
-        else:
-            for i in range(len(self.tree_root.children)):
-                if np.array_equal(chess_board, self.tree_root.children[i].board):
-                    if self.tree_root.children[i].adv_pos==adv_pos:
-                        self.tree_root = self.tree_root.children[i]
-                        self.tree_root.parent = None
-                        break
-            while time.time()-start_time < 1.9:
-                node = self.uct_node(self.tree_root)
-                if node.my_turn:
-                    sim_rst = self.random_walk(chess_board, my_pos, adv_pos)
-                else:
-                    sim_rst = self.random_walk(chess_board, adv_pos, my_pos)
-                while(node!=None):
-                    node.n += 1
-                    node.v += sim_rst
-                    node = node.parent
-        
-        new_root, new_pos, new_dir, rtn_val = self.tree_root, None, None, -1
-        for i in range(len(self.tree_root.children)):
-            child = self.tree_root.children[i]
-            child_val = child.v/(child.n+0.001)
-            if child_val > rtn_val:
-                new_root, new_pos, new_dir, rtn_val = child, child.my_pos, child.new_dir, child_val
-        
-        self.tree_root = new_root
-        self.tree_root.parent = None
-        print("end time:", time.time()-start_time)
-        return new_pos, new_dir
-    
-    
-    class MCTSNode():
-        def __init__(self, board, my_pos, adv_pos, my_turn, parent=None, new_dir=None):
-            self.board = board
-            self.my_pos = my_pos
-            self.adv_pos = adv_pos
-            self.my_turn = my_turn
-            self.parent = parent
-            self.new_dir = new_dir
-            self.children = []
-            self.n = 0
-            self.v = 0
-            return
-        
-        
-    # from the root, find the node to do simulation
-    # use this function uct_node(self.tree_root)
-    def uct_node(self, node):
-        if node.n==0: # it is a node that has not been visited
-            return node
-        elif len(node.children)==0: # visited but not expanded, add children and choose from children
-            list_children = self.find_all_children(node.board, node.my_pos, node.adv_pos, node.my_turn)
-            
-            (list_new_board, list_new_pos, list_new_dir), fixed_pos, turn = list_children
-            for i in range(len(list_new_board)):
-                new_board, new_pos, new_dir = list_new_board[i], list_new_pos[i], list_new_dir[i]
-                if turn:
-                    child = self.MCTSNode(new_board, new_pos, fixed_pos, False, node, new_dir)
-                else:
-                    child = self.MCTSNode(new_board, fixed_pos, new_pos, True, None, new_dir)
-                node.children.append(child)
-            max_val = 0
-            max_node = None
-            for i in range(len(node.children)):
-                node.children[i].parent = node
-                cur_val = (node.children[i].v/(node.children[i].n+0.001) + np.sqrt(2*node.n/(node.children[i].n+0.001)))
-                if cur_val>max_val:
-                    max_val = cur_val
-                    max_node = node.children[i]
-            return max_node
-        else: # visited and expanded, need to choose from its children, then continue
-            max_val = 0
-            max_node = None
-            for i in range(len(node.children)):
-                cur_val = (node.children[i].v/(node.children[i].n+0.001) + np.sqrt(2*node.n/(node.children[i].n+0.001)))
-                if cur_val>max_val:
-                    max_val = cur_val
-                    max_node = node.children[i]
-            return self.uct_node(max_node)
 
-        
-    def random_walk(self, board, my_pos, adv_pos):
-        temp=deepcopy(board)
-        result, util = self.check_endgame(temp, my_pos, adv_pos)
-        while (result != True):
-            myposstep=self.all_steps(temp,my_pos,adv_pos)
-            choice1 = np.random.randint(0, (len(myposstep)))
-            (x, y), dir = myposstep[choice1]
-            temp=self.set_barrier(temp, x, y, dir)
-            my_pos= (x, y)
-            result, util = self.check_endgame(temp, my_pos, adv_pos)
-            if (result == True):
-                return util
-            adsteps=self.all_steps(temp,adv_pos,my_pos)
-            choice2 = np.random.randint(0, (len(adsteps)))
-            (x, y), dir = adsteps[choice2]
-            temp=self.set_barrier(temp, x, y, dir)
-            adv_pos = (x, y)
-            result, util = self.check_endgame(temp, my_pos, adv_pos)
-        return util
-    
-    
+        return self.greedy_decision(chess_board, my_pos, adv_pos)
+
     def check_endgame(self, board, my_pos, adv_pos):
         father = dict()
         board_size = board.shape[0]
         for r in range(board_size):
             for c in range(board_size):
                 father[(r, c)] = (r, c)
-        
+
         def find(pos):
             if father[pos] != pos:
                 father[pos] = find(father[pos])
             return father[pos]
-        
+
         def union(pos1, pos2):
             father[pos1] = pos2
-            
+
         for r in range(board_size):
             for c in range(board_size):
                 for dir, move in enumerate(self.moves[1:3]):
-                    if board[r, c, dir+1]:
+                    if board[r, c, dir + 1]:
                         continue
                     pos_a = find((r, c))
-                    pos_b = find((r+move[0], c+move[1]))
+                    pos_b = find((r + move[0], c + move[1]))
                     if pos_a != pos_b:
                         union(pos_a, pos_b)
-                        
+
         for r in range(board_size):
             for c in range(board_size):
                 find((r, c))
-        
+
         p0_r = find(tuple(my_pos))
         p1_r = find(tuple(adv_pos))
         p0_score = list(father.values()).count(p0_r)
         p1_score = list(father.values()).count(p1_r)
-        if p0_r == p1_r: # not end
+        if p0_r == p1_r:  # not end
             return False, -1
-        elif p0_score > p1_score: # player 0 wins
+        elif p0_score > p1_score:  # player 0 wins
             return True, 1
-        elif p0_score < p1_score: # player 1 wins
+        elif p0_score < p1_score:  # player 1 wins
             return True, 0
-        else: # tie
+        else:  # tie
             return True, 0.5
-        
-    
+
     def set_barrier(self, board, r, c, dir):
         # Set the barrier to True
         board[r, c, dir] = True
@@ -213,8 +101,8 @@ class StupidAgent(Agent):
         move = self.moves[dir]
         board[r + move[0], c + move[1], self.opposites[dir]] = True
         return board
-    
-    
+
+    # given board, start_pos, end_pos, barrier_dir, adv_pos, check if the move is valid
     def check_valid_step(self, board, start_pos, end_pos, barrier_dir, adv_pos):
         """
         Check if the step the agent takes is valid (reachable and within max steps).
@@ -237,7 +125,7 @@ class StupidAgent(Agent):
 
         # Get position of the adversary
         # adv_pos = self.p0_pos if self.turn else self.p1_pos
-        
+
         max_step = (board.shape[0] + 1) // 2
 
         # BFS
@@ -264,45 +152,126 @@ class StupidAgent(Agent):
                 state_queue.append((next_pos, cur_step + 1))
 
         return is_reached
-    
-    
+
+    # given board, my_pos, adv_pos: return list[((x,y), dir)]
     def all_steps(self, board, my_pos, adv_pos):
         list_step = []
         board_size = board.shape[0]
         for i in range(board_size):
             for j in range(board_size):
                 for k in range(4):
-                    if self.check_valid_step(board, np.array(my_pos), np.array([i,j]), k, adv_pos):
-                        list_step.append(((i,j),k))
+                    if self.check_valid_step(board, np.array(my_pos), np.array([i, j]), k, adv_pos):
+                        list_step.append(((i, j), k))
         return list_step
 
-
-    # Given current state, return the next state
-    def next_state(self, board, my_pos, adv_pos, step, my_turn):
-        (r, c), dir = step
-        new_board = self.set_barrier(board, r, c, dir)
-        if my_turn:
-            return new_board, (r, c), adv_pos, False
-        else:
-            return new_board, my_pos, (r, c), True
-
-
-    def successors(self, board, list_step):
+    # given board, my_pos, adv_pos, my_turn, return all possible next state as:
+    # list[new_board], list[new_pos], list[new_dir]
+    def all_next_state(self, board, my_pos, adv_pos, my_turn):
         list_new_board, list_new_pos, list_new_dir = [], [], []
-        for i in range(len(list_step)):
-            temp = deepcopy(board)
-            (x, y), dir = list_step[i]
-            temp = self.set_barrier(temp, x, y, dir)
-            list_new_board.append(temp)
-            list_new_pos.append((x,y))
-            list_new_dir.append(dir)
-        return list_new_board, list_new_pos, list_new_dir
-    
-
-    def find_all_children(self, board, my_pos, adv_pos, my_turn):
         if my_turn:
-            list_children = self.all_steps(board, my_pos, adv_pos)
-            return self.successors(board, list_children), adv_pos, my_turn
+            list_step = self.all_steps(board, my_pos, adv_pos)
+            for i in range(len(list_step)):
+                temp = deepcopy(board)
+                (x, y), dir = list_step[i]
+                temp = self.set_barrier(temp, x, y, dir)
+                list_new_board.append(temp)
+                list_new_pos.append((x, y))
+                list_new_dir.append(dir)
         else:
-            list_children = self.all_steps(board, adv_pos, my_pos)
-            return self.successors(board, list_children), my_pos, my_turn
+            list_step = self.all_steps(board, adv_pos, my_pos)
+            for i in range(len(list_step)):
+                temp = deepcopy(board)
+                (x, y), dir = list_step[i]
+                temp = self.set_barrier(temp, x, y, dir)
+                list_new_board.append(temp)
+                list_new_pos.append((x, y))
+                list_new_dir.append(dir)
+        return list_new_board, list_new_pos, list_new_dir
+
+    # given current state, evaluate each position and return the best state with highest heuristic score
+    def greedy_decision(self, board, my_pos, adv_pos):
+        list_new_board, list_new_pos, list_new_dir = self.all_next_state(board, my_pos, adv_pos, True)
+        list_rm = []
+        for i in range(len(list_new_board)):
+            end_result, end_score = self.check_endgame(list_new_board[i], list_new_pos[i], adv_pos)
+            if (end_result, end_score) == (True, 1):  # if the position is winning return this
+                return list_new_pos[i], list_new_dir[i]
+            elif (end_result, end_score) == (True, 0):
+                list_rm.append(i)
+            elif (end_result, end_score) == (True, 0.5):
+                continue
+            else:
+                list_adv_new_board, list_adv_new_pos, list_adv_new_dir = self.all_next_state(list_new_board[i],
+                                                                                             list_new_pos[i], adv_pos,
+                                                                                             False)
+                for j in range(len(list_adv_new_board)):
+                    adv_result, adv_score = self.check_endgame(list_adv_new_board[j], list_adv_new_pos[j],
+                                                               list_new_pos[i])
+                    if (adv_result, adv_score) == (True, 1):
+                        list_rm.append(i)
+                        break
+        list_rm.reverse()
+        for k in range(len(list_rm)):  # removing losing position
+            list_new_board.pop(list_rm[k])
+            list_new_pos.pop(list_rm[k])
+            list_new_dir.pop(list_rm[k])
+        # we prefer:
+        # position that is far away from wall and adv near wall
+        # my_reach: get the number of barrier within the reach as a score, lower the better
+        # adv_reach: get the number of barrier within the adversary's reach as a score, higher the better
+        state_score = np.array([])
+        # print(len(list_new_board))
+        board_size = list_new_board[0].shape[0]
+        for i in range(len(list_new_board)):
+            score_i = 0
+            r, c = list_new_pos[i]
+            for reach_row in range(self.max_my_reach * 2):
+                for reach_col in range(self.max_my_reach * 2):
+                    if (c - self.max_my_reach - reach_col) < 0 or (c - self.max_my_reach + reach_col) >= board_size or (
+                            r - self.max_my_reach - reach_row) < 0 or (r - self.max_my_reach + reach_row) >= board_size:
+                        score_i -= 999
+                    if (r - self.max_my_reach - reach_row) >= 0 and (r - self.max_my_reach + reach_row) < board_size:
+                        if (c - self.max_my_reach - reach_col) >= 0 and (
+                                c - self.max_my_reach + reach_col) < board_size:
+                            score_i += self.my_barrier_score[np.abs(reach_row - self.max_my_reach) + np.abs(
+                                reach_col - self.max_my_reach)] * np.count_nonzero(
+                                (list_new_board[i])[r - self.max_my_reach, c - self.max_my_reach])
+            ra, ca = adv_pos
+            if (r - ra) > 0:
+                if (c - ca) > 0:
+                    if list_new_dir[i] == 0 or list_new_dir[i] == 3:
+                        score_i += 1
+                elif (c - ca) == 0:
+                    if list_new_dir[i] == 0:
+                        score_i += 1
+                else:
+                    if list_new_dir[i] == 0 or list_new_dir[i] == 1:
+                        score_i += 1
+            elif (r - ra) == 0:
+                if (c - ca) > 0:
+                    if list_new_dir[i] == 3:
+                        score_i += 1
+                elif (c - ca) < 0:
+                    if list_new_dir[i] == 1:
+                        score_i += 1
+            elif (r - ra) < 0:
+                if (c - ca) > 0:
+                    if list_new_dir[i] == 2 or list_new_dir[i] == 3:
+                        score_i += 1
+                elif (c - ca) == 0:
+                    if list_new_dir[i] == 2:
+                        score_i += 1
+                else:
+                    if list_new_dir[i] == 1 or list_new_dir[i] == 2:
+                        score_i += 1
+            # for reach_row in range(self.max_adv_reach*2):
+            # if (r-self.max_adv_reach-reach_row)>=0 and (r-self.max_adv_reach+reach_row)<board_size:
+            # for reach_col in range(self.max_adv_reach*2):
+            # if (c-self.max_adv_reach-reach_col)>=0 and (c-self.max_adv_reach+reach_col)<board_size:
+            # score_i += self.adv_barrier_score[np.abs(reach_row-self.max_adv_reach)+np.abs(reach_col-self.max_adv_reach)]*np.count_nonzero((list_new_board[i])[r-self.max_adv_reach, c-self.max_adv_reach])
+            state_score = np.append(state_score, score_i)
+        best_idx = (np.argwhere(state_score == np.amax(state_score))).ravel()
+        rand_idx = best_idx[np.random.randint(len(best_idx))]
+        best_pos = list_new_pos[rand_idx]
+        best_dir = list_new_dir[rand_idx]
+        return best_pos, best_dir

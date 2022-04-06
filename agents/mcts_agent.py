@@ -1,10 +1,8 @@
-# Student agent: Add your own agent here
-from hashlib import new
-from logging import root
+
 from agents.agent import Agent
-from constants import MAX_BOARD_SIZE
+
 from store import register_agent
-import sys
+
 from copy import deepcopy
 import numpy as np
 
@@ -20,7 +18,7 @@ class MCTSAgent(Agent):
         super(MCTSAgent, self).__init__()
         self.name = "MCTSAgent"
         self.autoplay = True
-        
+
         self.dir_map = {
             "u": 0,
             "r": 1,
@@ -29,11 +27,10 @@ class MCTSAgent(Agent):
         }
         self.moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
         self.opposites = {0: 2, 1: 3, 2: 0, 3: 1}
-        self.max_exp = 1000 # max number of exploration
+        self.max_exp = 1000  # max number of exploration
         self.max_exp2 = 100
-        self.max_depth = 1 # max number of depth of the tree
+        self.max_depth = 1  # max number of depth of the tree
         self.tree_root = None
-        
 
     def step(self, chess_board, my_pos, adv_pos, max_step):
         """
@@ -43,15 +40,13 @@ class MCTSAgent(Agent):
         - my_pos: a tuple of (x, y)
         - adv_pos: a tuple of (x, y)
         - max_step: an integer
-
         You should return a tuple of ((x, y), dir),
         where (x, y) is the next position of your agent and dir is the direction of the wall
         you want to put on.
-
         Please check the sample implementation in agents/random_agent.py or agents/human_agent.py for more details.
         """
         # dummy return
-        if self.tree_root==None:
+        if self.tree_root == None:
             self.tree_root = self.MCTSNode(chess_board, my_pos, adv_pos, True, None, None)
             self.tree_root.explored = True
             self.add_children(self.tree_root, self.find_all_children(chess_board, my_pos, adv_pos, True))
@@ -61,7 +56,7 @@ class MCTSAgent(Agent):
                 node.explored = True
                 self.add_children(node, self.find_all_children(chess_board, my_pos, adv_pos, node.my_turn))
                 rst = self.random_walk(chess_board, my_pos, adv_pos)
-                while(node!=None):
+                while (node != None):
                     node.number_of_visits += 1
                     node.value += rst
                     node = node.parent
@@ -69,64 +64,61 @@ class MCTSAgent(Agent):
         else:
             for i in range(len(self.tree_root.children)):
                 if np.array_equal(chess_board, self.tree_root.children[i].board):
-                        if self.tree_root.children[i].adv_pos==adv_pos:
-                            self.tree_root = self.tree_root.children[i]
-                            break
+                    if self.tree_root.children[i].adv_pos == adv_pos:
+                        self.tree_root = self.tree_root.children[i]
+                        break
             for i in range(self.max_exp2):
                 node, _ = self.select_node(self.tree_root, self.tree_root.uct_val(), 0)
                 node.explored = True
                 self.add_children(node, self.find_all_children(chess_board, my_pos, adv_pos, node.my_turn))
                 rst = self.random_walk(chess_board, my_pos, adv_pos)
-                while(node!=None):
+                while (node != None):
                     node.number_of_visits += 1
                     node.value += rst
                     node = node.parent
                 pass
-                
-        
+
         new_root, new_pos, new_dir, rtn_val = self.tree_root, None, None, -1
         for i in range(len(self.tree_root.children)):
             child = self.tree_root.children[i]
-            child_val = child.value/(child.number_of_visits+0.001)
+            child_val = child.value / (child.number_of_visits + 0.001)
             if child_val > rtn_val:
                 new_root, new_pos, new_dir, rtn_val = child, child.my_pos, child.new_dir, child_val
-        
+
         self.tree_root = new_root
         self.tree_root.parent = None
         return new_pos, new_dir
-    
-    
+
     class MCTSNode():
         def __init__(self, board, my_pos, adv_pos, my_turn, parent=None, new_dir=None):
             self.board = board
             self.my_pos = my_pos
             self.adv_pos = adv_pos
-            self.my_turn = my_turn # True or False
+            self.my_turn = my_turn  # True or False
             self.parent = parent
-            self.new_dir = new_dir # new barrier direction chosen by parent
+            self.new_dir = new_dir  # new barrier direction chosen by parent
             self.children = []
             self.explored = False
-            self.number_of_visits = 0 # n(s), Q(s,a) denominator
-            self.value = 0 # Q(s,a) numerator
+            self.number_of_visits = 0  # n(s), Q(s,a) denominator
+            self.value = 0  # Q(s,a) numerator
             return
-        
+
         def uct_val(self):
-            if self.parent==None:
-                return self.value/(self.number_of_visits+0.001)
-            return (self.value/(self.number_of_visits+0.001) + np.sqrt(2*self.parent.number_of_visits/(self.number_of_visits+0.001)))
-        
-        
+            if self.parent == None:
+                return self.value / (self.number_of_visits + 0.001)
+            return (self.value / (self.number_of_visits + 0.001) + np.sqrt(
+                2 * self.parent.number_of_visits / (self.number_of_visits + 0.001)))
+
     def select_node(self, node, node_val, depth):
         rtn_node, rtn_val = node, node_val
-        if node.explored==True and depth<self.max_depth:
+        if node.explored == True and depth < self.max_depth:
             for i in range(len(node.children)):
                 child = node.children[i]
                 child_val = child.uct_val()
                 if child_val > rtn_val:
-                    rtn_node, rtn_val = self.select_node(child, child_val, depth+1)
+                    rtn_node, rtn_val = self.select_node(child, child_val, depth + 1)
         return rtn_node, rtn_val
 
-    
     def add_children(self, node, list_children):
         cur_my_pos = node.my_pos
         cur_adv_pos = node.adv_pos
@@ -139,71 +131,69 @@ class MCTSAgent(Agent):
             else:
                 child = self.MCTSNode(new_board, cur_my_pos, new_pos, True, node, new_dir)
             node.children.append(child)
-            
-    
+
     def random_walk(self, board, my_pos, adv_pos):
-        temp=deepcopy(board)
+        temp = deepcopy(board)
         result, util = self.check_endgame(temp, my_pos, adv_pos)
         while (result != True):
-            myposstep=self.all_steps(temp,my_pos,adv_pos)
+            myposstep = self.all_steps(temp, my_pos, adv_pos)
             choice1 = np.random.randint(0, (len(myposstep)))
             (x, y), dir = myposstep[choice1]
-            temp=self.set_barrier(temp, x, y, dir)
-            my_pos= (x, y)
+            temp = self.set_barrier(temp, x, y, dir)
+            my_pos = (x, y)
             result, util = self.check_endgame(temp, my_pos, adv_pos)
             if (result == True):
                 return util
-            adsteps=self.all_steps(temp,adv_pos,my_pos)
+            adsteps = self.all_steps(temp, adv_pos, my_pos)
             choice2 = np.random.randint(0, (len(adsteps)))
             (x, y), dir = adsteps[choice2]
-            temp=self.set_barrier(temp, x, y, dir)
+            temp = self.set_barrier(temp, x, y, dir)
             adv_pos = (x, y)
             result, util = self.check_endgame(temp, my_pos, adv_pos)
         return util
-    
+
     def check_endgame(self, board, my_pos, adv_pos):
         father = dict()
         board_size = board.shape[0]
         for r in range(board_size):
             for c in range(board_size):
                 father[(r, c)] = (r, c)
-        
+
         def find(pos):
             if father[pos] != pos:
                 father[pos] = find(father[pos])
             return father[pos]
-        
+
         def union(pos1, pos2):
             father[pos1] = pos2
-            
+
         for r in range(board_size):
             for c in range(board_size):
                 for dir, move in enumerate(self.moves[1:3]):
-                    if board[r, c, dir+1]:
+                    if board[r, c, dir + 1]:
                         continue
                     pos_a = find((r, c))
-                    pos_b = find((r+move[0], c+move[1]))
+                    pos_b = find((r + move[0], c + move[1]))
                     if pos_a != pos_b:
                         union(pos_a, pos_b)
-                        
+
         for r in range(board_size):
             for c in range(board_size):
                 find((r, c))
-        
+
         p0_r = find(tuple(my_pos))
         p1_r = find(tuple(adv_pos))
         p0_score = list(father.values()).count(p0_r)
         p1_score = list(father.values()).count(p1_r)
-        if p0_r == p1_r: # not end
+        if p0_r == p1_r:  # not end
             return False, -1
-        elif p0_score > p1_score: # player 0 wins
+        elif p0_score > p1_score:  # player 0 wins
             return True, 1
-        elif p0_score < p1_score: # player 1 wins
+        elif p0_score < p1_score:  # player 1 wins
             return True, 0
-        else: # tie
+        else:  # tie
             return True, 0.5
-        
-    
+
     def set_barrier(self, board, r, c, dir):
         # Set the barrier to True
         board[r, c, dir] = True
@@ -211,12 +201,10 @@ class MCTSAgent(Agent):
         move = self.moves[dir]
         board[r + move[0], c + move[1], self.opposites[dir]] = True
         return board
-    
-    
+
     def check_valid_step(self, board, start_pos, end_pos, barrier_dir, adv_pos):
         """
         Check if the step the agent takes is valid (reachable and within max steps).
-
         Parameters
         ----------
         start_pos : tuple
@@ -235,7 +223,7 @@ class MCTSAgent(Agent):
 
         # Get position of the adversary
         # adv_pos = self.p0_pos if self.turn else self.p1_pos
-        
+
         max_step = (board.shape[0] + 1) // 2
 
         # BFS
@@ -262,18 +250,16 @@ class MCTSAgent(Agent):
                 state_queue.append((next_pos, cur_step + 1))
 
         return is_reached
-    
-    
+
     def all_steps(self, board, my_pos, adv_pos):
         list_step = []
         board_size = board.shape[0]
         for i in range(board_size):
             for j in range(board_size):
                 for k in range(4):
-                    if self.check_valid_step(board, np.array(my_pos), np.array([i,j]), k, adv_pos):
-                        list_step.append(((i,j),k))
+                    if self.check_valid_step(board, np.array(my_pos), np.array([i, j]), k, adv_pos):
+                        list_step.append(((i, j), k))
         return list_step
-
 
     # Given current state, return the next state
     def next_state(self, board, my_pos, adv_pos, step, my_turn):
@@ -284,8 +270,6 @@ class MCTSAgent(Agent):
         else:
             return new_board, my_pos, (r, c), True
 
-
-    
     def successors(self, board, list_step):
         list_new_board, list_new_pos, list_new_dir = [], [], []
         for i in range(len(list_step)):
@@ -293,13 +277,9 @@ class MCTSAgent(Agent):
             (x, y), dir = list_step[i]
             temp = self.set_barrier(temp, x, y, dir)
             list_new_board.append(temp)
-            list_new_pos.append((x,y))
+            list_new_pos.append((x, y))
             list_new_dir.append(dir)
         return list_new_board, list_new_pos, list_new_dir
-    
-
-
-
 
     def find_all_children(self, board, my_pos, adv_pos, my_turn):
         if my_turn:
@@ -307,5 +287,3 @@ class MCTSAgent(Agent):
         else:
             list_children = self.all_steps(board, adv_pos, my_pos)
         return self.successors(board, list_children)
-
-
