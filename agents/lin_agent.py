@@ -3,7 +3,6 @@ from math import log
 
 import numpy as np
 
-
 from numpy import sqrt
 
 from agents.agent import Agent
@@ -37,11 +36,32 @@ class LinAgent(Agent):
 
     def step(self, chess_board, my_pos, adv_pos, max_step):
         # Moves (Up, Right, Down, Left)
-        possiblesteps=self.all_steps_possible(chess_board,my_pos, adv_pos)
-        index= self.choice(chess_board, possiblesteps, adv_pos)
+        possiblesteps = self.all_steps_possible(chess_board, my_pos, adv_pos)
+        index = self.choice(chess_board, possiblesteps, adv_pos, my_pos)
         (x, y), dir = possiblesteps[index]
-        x1,y1=my_pos
+        x1, y1 = my_pos
         return (x, y), dir
+
+    def preference(self, board,list_step, adv_pos, my_pos):
+        xm = my_pos[0]
+        ym = my_pos[1]
+        xa = adv_pos[0]
+        ya = adv_pos[1]
+        pref = [0] * len(list_step)
+        max_step = (board.shape[0] + 1) // 2
+        for i in range(len(list_step)):
+            (x, y), dir = list_step[i]
+            if abs(y - ya) < abs(ym - ya) :
+                pref[i] += (abs(y - ya) - abs(ym - ya))
+            if abs(x - xa) < abs(xm - xa):
+                pref[i] += (abs(x - xa) - abs(xm - xa))
+            if abs(y - ya) < max_step :
+                pref[i] += (abs(y - ya) - max_step)
+            if abs(x - xa) < max_step:
+                pref[i] += (abs(x - xa) - max_step)
+            if abs(x - xa)+abs(y - ya) <=max_step:
+                pref[i]=100
+        return pref
 
     # find all possible steps given current board
 
@@ -49,32 +69,33 @@ class LinAgent(Agent):
         list_step = []
         board_size = board.shape[0]
         max_step = (board.shape[0] + 1) // 2
-        x=my_pos[0]
-        y=my_pos[1]
-        lx=0
-        ux=board_size
-        ly=lx
-        uy=ux
-        if(x-max_step)>0:
-            lx=x-max_step
-        if(y-max_step)>0:
-            ly=y-max_step
-        if(x+max_step)<board_size:
-            ux=x+max_step+1
-        if(y+max_step)<board_size:
-            uy=y+max_step+1
-        for i in range(lx,ux):
-            for j in range(ly,uy):
-                if(abs(i-x)+abs(j-y))<=max_step:
+        x = my_pos[0]
+        y = my_pos[1]
+        lx = 0
+        ux = board_size
+        ly = lx
+        uy = ux
+        if (x - max_step) > 0:
+            lx = x - max_step
+        if (y - max_step) > 0:
+            ly = y - max_step
+        if (x + max_step) < board_size:
+            ux = x + max_step + 1
+        if (y + max_step) < board_size:
+            uy = y + max_step + 1
+        for i in range(lx, ux):
+            for j in range(ly, uy):
+                if (abs(i - x) + abs(j - y)) <= max_step:
                     for k in range(4):
                         if self.check_valid_step(board, np.array(my_pos), np.array([i, j]), k, adv_pos):
                             list_step.append(((i, j), k))
         return list_step
+
     # find a list of successor board given current board
 
-    def choice(self, board, list_step1, adv_pos):
+    def choice(self, board, list_step1, adv_pos, my_pos):
         list_utility = [0] * len(list_step1)
-        list_res=[False]*len(list_step1)
+        list_res = [False] * len(list_step1)
         mustfail = True
         for i in range(len(list_step1)):  # my steps
             temp = board.copy()
@@ -82,21 +103,21 @@ class LinAgent(Agent):
             temp = self.set_barrier(temp, x, y, dir)
             mypos1 = (x, y)
             result, util = self.check_endgame(temp, mypos1, adv_pos)
-            if util==1:
+            if util == 1:
                 return i
-            if util== 0 and result:
-                mustfail =False
+            if util == 0 and result:
+                mustfail = False
             list_utility[i] = util * 100
-            list_res[i]=result
+            list_res[i] = result
 
         for i in range(len(list_res)):
-            if  list_res[i]==False:
+            if list_res[i] == False:
                 (x, y), dir = list_step1[i]
                 temp = board.copy()
                 temp = self.set_barrier(temp, x, y, dir)
                 mypos1 = (x, y)
                 advsteps = self.all_steps_possible(temp, adv_pos, mypos1)  # adversary steps
-                list_utility[i]=100
+                list_utility[i] = 100
                 if len(advsteps) > 0:
                     for j in range(len(advsteps)):
                         temp1 = temp.copy()
@@ -104,45 +125,67 @@ class LinAgent(Agent):
                         advpos1 = (x1, y1)
                         temp1 = self.set_barrier(temp1, x1, y1, dir1)
                         result1, util1 = self.check_endgame(temp1, mypos1, advpos1)
-                        if util1==-1:
-                            list_utility[i]=util1*100
-                            list_res[i]=result1
+                        if util1 == -1:
+                            list_utility[i] = util1 * 100
+                            list_res[i] = result1
                             break
-                        if list_utility[i]!=-100 and util1==0:
-                            list_utility[i]=0
-                    if  list_utility[i]>=0:
-                        mustfail=False
+                        if list_utility[i] != -100 and util1 == 0:
+                            list_utility[i] = 0
+                    if list_utility[i] >= 0:
+                        mustfail = False
         for i in range(len(list_step1)):
-            if list_utility[i]==100:
+            if list_utility[i] == 100:
                 return i
-        if mustfail:
-            return random.randint(0,(len(list_step1)-1))
-        Rand =True
+
+        Rand = True
+        pref = self.preference(board,list_step1, adv_pos, my_pos)
+        if self.findmaxind(pref)==100:
+            for i in range(len(list_step1)):
+                if list_res[i] == False and pref[i] == 100:
+                    (x, y), dir = list_step1[i]
+                    temp = board.copy()
+                    temp = self.set_barrier(temp, x, y, dir)
+                    mypos1 = (x, y)
+                    z = 0
+                    tmputil = 0
+                    simnum = ((board.shape[0] + 1) // 2) ** 2
+                    for z in range(simnum // len(list_step1)):
+                        tmputil += 100 * self.strictrandomwalk(temp, mypos1, adv_pos)
+                        if z > 1 and tmputil < 0:
+                            break
+                    list_utility[i] = tmputil / (z + 1) + 2 * sqrt(log(z + 1) / (z + 1))
+                    if tmputil >= 0:
+                        mustfail = False
+                    if tmputil > 0:
+                        Rand = False
+        if Rand == False:
+            return self.findmaxid(list_utility)
         for i in range(len(list_step1)):
-            if list_res[i] == False:
+            if list_res[i] == False and pref[i] < 0:
                 (x, y), dir = list_step1[i]
                 temp = board.copy()
                 temp = self.set_barrier(temp, x, y, dir)
                 mypos1 = (x, y)
-                z=0
+                z = 0
                 tmputil = 0
-                simnum=((board.shape[0] + 1)//2) ** 2
-                for z in range(simnum//len(list_step1)):
-                    tmputil+=100*self.randomwalk(temp,mypos1,adv_pos)
-                    if z > 4 and tmputil < 0:
+                simnum = ((board.shape[0] + 1)//2) ** 2
+                for z in range(simnum // len(list_step1)):
+                    tmputil += 100 * self.randomwalk(temp, mypos1, adv_pos)
+                    if z > 1 and tmputil < 0:
                         break
-                list_utility[i]=tmputil/(z+1)+2*sqrt(log(z+1)/(z+1))
-                if tmputil>0:
-                    Rand=False
-        cos=0
-        if Rand==False:
+                list_utility[i] = tmputil / (z + 1) + 2 * sqrt(log(z + 1) / (z + 1))
+                if tmputil >= 0:
+                    mustfail=False
+                if tmputil > 0:
+                    Rand = False
+        if mustfail:
+            return random.randint(0, (len(list_step1) - 1))
+        if Rand == False:
             return self.findmaxid(list_utility)
         else:
-            found=False
-            while not found:
-                cos=random.randint(0,(len(list_step1)-1))
-                if list_utility[cos]>=0:
-                    found=True
+            cos=random.randint(0,(len(list_step1)-1))
+            while list_utility[cos]<0:
+                cos = random.randint(0, (len(list_step1) - 1))
             return cos
 
     def set_barrier(self, board, r, c, dir):
@@ -152,24 +195,60 @@ class LinAgent(Agent):
         move = self.moves[dir]
         board[r + move[0], c + move[1], self.opposites[dir]] = True
         return board
-
-    def randomwalk(self, board, my_pos, adv_pos):
+    def strictrandomwalk(self, board, my_pos, adv_pos):
         temp = board.copy()
-        result=False
-        util=0
+        result = False
+        util = 0
+        rec = 1
         if result:
             return util
         while not result:
-            advposstep = self.all_steps_possible(temp,adv_pos, my_pos)
-            if len(advposstep)>0:
-                choice1 = self.conscience(temp,advposstep,my_pos)
+            advposstep = self.all_steps_possible(temp, adv_pos, my_pos)
+            if len(advposstep) > 0:
+                choice1 = self.conscience(temp, advposstep, my_pos)
                 (x, y), dir = advposstep[choice1]
                 temp = self.set_barrier(temp, x, y, dir)
                 adv_pos = (x, y)
                 mysteps = self.all_steps_possible(temp, adv_pos, my_pos)
-                if len(mysteps)>0:
-                    choice2 = random.randint(0,len(mysteps))
+                if len(mysteps) > 0:
+                    choice2 = self.conscience(temp, mysteps, my_pos)
                     (x1, y1), dir2 = mysteps[choice2]
+                    rec = rec + 1
+                    temp = self.set_barrier(temp, x1, y1, dir2)
+                    my_pos = (x, y)
+                    result, util = self.check_endgame(temp, my_pos, adv_pos)
+                    if result:
+                        return util
+                else:
+                    return 0
+            else:
+                return 0
+        return util
+    def randomwalk(self, board, my_pos, adv_pos):
+        temp = board.copy()
+        result = False
+        util = 0
+        rec = 1
+        if result:
+            return util
+        while not result:
+            advposstep = self.all_steps_possible(temp, adv_pos, my_pos)
+            if len(advposstep) > 0:
+                if rec % 2 == 0:
+                    choice1 = self.conscience(temp, advposstep, my_pos)
+                else:
+                    choice1 = random.randint(0, (len(advposstep) - 1))
+                (x, y), dir = advposstep[choice1]
+                temp = self.set_barrier(temp, x, y, dir)
+                adv_pos = (x, y)
+                mysteps = self.all_steps_possible(temp, adv_pos, my_pos)
+                if len(mysteps) > 0:
+                    if rec % 2 == 1:
+                        choice2 = self.conscience(temp, mysteps, my_pos)
+                    else:
+                        choice2 = random.randint(0, (len(mysteps) - 1))
+                    (x1, y1), dir2 = mysteps[choice2]
+                    rec = rec + 1
                     temp = self.set_barrier(temp, x1, y1, dir2)
                     my_pos = (x, y)
                     result, util = self.check_endgame(temp, my_pos, adv_pos)
@@ -181,28 +260,27 @@ class LinAgent(Agent):
                 return 0
         return util
 
-
     def findmaxind(selfself, listint):
-        max=listint[0]
+        max = listint[0]
         for i in range(len(listint)):
-            if listint[i]>max:
-                max=listint[i]
+            if listint[i] > max:
+                max = listint[i]
         return max
 
     def findminind(selfself, listint):
-        min=listint[0]
+        min = listint[0]
         for i in range(len(listint)):
-            if listint[i]<min:
-                min=listint[i]
+            if listint[i] < min:
+                min = listint[i]
         return min
 
     def findmaxid(selfself, listint):
-        max=listint[0]
-        ind=0
+        max = listint[0]
+        ind = 0
         for i in range(len(listint)):
-            if listint[i]>max:
-                max=listint[i]
-                ind=i
+            if listint[i] > max:
+                max = listint[i]
+                ind = i
         return ind
 
     # check if the game ends
@@ -213,12 +291,15 @@ class LinAgent(Agent):
         for r in range(board_size):
             for c in range(board_size):
                 father[(r, c)] = (r, c)
+
         def find(pos):
             if father[pos] != pos:
                 father[pos] = find(father[pos])
             return father[pos]
+
         def union(pos1, pos2):
             father[pos1] = pos2
+
         for r in range(board_size):
             for c in range(board_size):
                 for dir, move in enumerate(self.moves[1:3]):
@@ -299,7 +380,7 @@ class LinAgent(Agent):
 
     def conscience(self, board, list_step1, adv_pos):
         list_utility = [0] * len(list_step1)
-        list_res=[False]*len(list_step1)
+        list_res = [False] * len(list_step1)
         mustfail = True
         for i in range(len(list_step1)):  # my steps
             temp = board.copy()
@@ -307,21 +388,21 @@ class LinAgent(Agent):
             temp = self.set_barrier(temp, x, y, dir)
             mypos1 = (x, y)
             result, util = self.check_endgame(temp, mypos1, adv_pos)
-            if util==1:
+            if util == 1:
                 return i
-            if util==0 and result:
-                mustfail =False
+            if util == 0 and result:
+                mustfail = False
             list_utility[i] = util * 100
-            list_res[i]=result
+            list_res[i] = result
 
         for i in range(len(list_res)):
-            if  list_res[i]==False:
+            if list_res[i] == False:
                 (x, y), dir = list_step1[i]
                 temp = board.copy()
                 temp = self.set_barrier(temp, x, y, dir)
                 mypos1 = (x, y)
                 advsteps = self.all_steps_possible(temp, adv_pos, mypos1)  # adversary steps
-                list_utility[i]=100
+                list_utility[i] = 100
                 if len(advsteps) > 0:
                     for j in range(len(advsteps)):
                         temp1 = temp.copy()
@@ -329,23 +410,23 @@ class LinAgent(Agent):
                         advpos1 = (x1, y1)
                         temp1 = self.set_barrier(temp1, x1, y1, dir1)
                         result1, util1 = self.check_endgame(temp1, mypos1, advpos1)
-                        if util1==-1:
-                            list_utility[i]=util1*100
+                        if util1 == -1:
+                            list_utility[i] = util1 * 100
                             break
-                        if list_utility[i]!=-100 and util1==0:
-                            list_utility[i]=0
-                    if  list_utility[i]>=0:
-                        mustfail=False
-        temp=0
+                        if list_utility[i] != -100 and util1 == 0:
+                            list_utility[i] = 0
+                    if list_utility[i] >= 0:
+                        mustfail = False
+        temp = 0
         for i in range(len(list_step1)):
-            if list_utility[i]==100:
+            if list_utility[i] == 100:
                 return i
-        if  mustfail:
-            return random.randint(0,(len(list_step1)-1))
+        if mustfail:
+            return random.randint(0, (len(list_step1) - 1))
         else:
-            found=False
+            found = False
             while not found:
-                temp=random.randint(0,(len(list_step1)-1))
-                if list_utility[temp]>=0:
-                    found=True
+                temp = random.randint(0, (len(list_step1) - 1))
+                if list_utility[temp] >= 0:
+                    found = True
         return temp
