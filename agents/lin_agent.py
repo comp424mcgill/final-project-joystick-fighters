@@ -129,7 +129,7 @@ class LinAgent(Agent):
                 simnum=((board.shape[0] + 1)//2) ** 2
                 for z in range(simnum//len(list_step1)):
                     tmputil+=100*self.randomwalk(temp,mypos1,adv_pos)
-                    if z > 1 and tmputil < 0:
+                    if z > 4 and tmputil < 0:
                         break
                 list_utility[i]=tmputil/(z+1)+2*sqrt(log(z+1)/(z+1))
                 if tmputil>0:
@@ -168,7 +168,7 @@ class LinAgent(Agent):
                 adv_pos = (x, y)
                 mysteps = self.all_steps_possible(temp, adv_pos, my_pos)
                 if len(mysteps)>0:
-                    choice2 = self.conscience(temp,mysteps,adv_pos)
+                    choice2 = random.randint(0,len(mysteps))
                     (x1, y1), dir2 = mysteps[choice2]
                     temp = self.set_barrier(temp, x1, y1, dir2)
                     my_pos = (x, y)
