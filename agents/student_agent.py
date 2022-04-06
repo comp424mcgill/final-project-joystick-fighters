@@ -116,11 +116,7 @@ class StudentAgent(Agent):
             for j in range(board_size):
                 for k in range(4):
                     if self.check_valid_step(board, np.array(my_pos), np.array([i, j]), k, adv_pos):
-                        temp = board.copy()
-                        temp = self.set_barrier(temp, i, j, k)
-                        result, util = self.check_endgame(temp, (i,j), adv_pos)
-                        if util>=0:
-                            list_step.append(((i, j), k))
+                        list_step.append(((i, j), k))
         return list_step
 
     def set_barrier(self, board, r, c, dir):
