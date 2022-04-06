@@ -196,13 +196,26 @@ class StudentAgent(Agent):
                 return util
             else:
                 r, c = my_pos
+                ra, ca = adv_pos
                 rand_step = np.random.randint(1, max_step+1)
-                for i in range(rand_step):
+                for i in range(0, rand_step):
                     dir = np.random.permutation(4)
                     for j in range(4):
                         rand_dir = dir[j]
-                        if (temp[r,c])[rand_dir] == False:
-                            break
+                        if not(temp[r,c,rand_dir]):
+                            if ((np.abs(r-ra)+np.abs(c-ca))==1):
+                                if rand_dir==0:
+                                    if ra!=(r-1) and r!=0:
+                                        break
+                                elif rand_dir==1:
+                                    if ca!=(c+1) and c!=(self.board_size-1):
+                                        break
+                                elif rand_dir!=2:
+                                    if ra!=(r+1) and r!=(self.board_size-1):
+                                        break
+                                else:
+                                    if ca!=(c-1) and c!=0:
+                                        break
                     if rand_dir==0:
                         r -= 1
                     elif rand_dir==1:
@@ -211,10 +224,11 @@ class StudentAgent(Agent):
                         r += 1
                     else:
                         c -= 1
+                print("current position:", r, c)
                 rand_barrier_dir = np.random.permutation(4)
                 for i in range(4):
                     b_dir = rand_barrier_dir[i]
-                    if (temp[r,c])[b_dir] == False:
+                    if not(temp[r,c,b_dir]):
                         break
                     temp = self.set_barrier(temp, r, c, rand_dir)
             return self.rand_simulation(temp, (r,c), adv_pos, False, max_step)
