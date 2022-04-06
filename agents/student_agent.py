@@ -112,8 +112,23 @@ class StudentAgent(Agent):
     def all_steps_possible(self, board, my_pos, adv_pos):
         list_step = []
         board_size = board.shape[0]
-        for i in range(board_size):
-            for j in range(board_size):
+        max_step = (board.shape[0] + 1) // 2
+        x=my_pos[0]
+        y=my_pos[1]
+        lx=0
+        ux=board_size
+        ly=lx
+        uy=ux
+        if(x-max_step)>0:
+            lx=x-max_step
+        if(y-max_step)>0:
+            ly=y-max_step
+        if(x+max_step)<board_size:
+            ux=x+max_step+1
+        if(y+max_step)<board_size:
+            uy=y+max_step+1
+        for i in range(lx,ux):
+            for j in range(ly,uy):
                 for k in range(4):
                     if self.check_valid_step(board, np.array(my_pos), np.array([i, j]), k, adv_pos):
                         list_step.append(((i, j), k))

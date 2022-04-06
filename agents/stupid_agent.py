@@ -28,9 +28,9 @@ class StupidAgent(Agent):
         }
         self.moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
         self.opposites = {0: 2, 1: 3, 2: 0, 3: 1}
-        self.max_my_reach = 2
+        self.max_my_reach = 1
         self.max_adv_reach = 2
-        self.my_barrier_score = np.array([-3, -2, -1, -1, -1])
+        self.my_barrier_score = np.array([-1, -1, -1, -1, -1])
         self.adv_barrier_score = np.array([5000, 400, 1, 1, 1])
 
     def step(self, chess_board, my_pos, adv_pos, max_step):
@@ -41,9 +41,11 @@ class StupidAgent(Agent):
         - my_pos: a tuple of (x, y)
         - adv_pos: a tuple of (x, y)
         - max_step: an integer
+
         You should return a tuple of ((x, y), dir),
         where (x, y) is the next position of your agent and dir is the direction of the wall
         you want to put on.
+
         Please check the sample implementation in agents/random_agent.py or agents/human_agent.py for more details.
         """
         # dummy return
@@ -104,6 +106,7 @@ class StupidAgent(Agent):
     def check_valid_step(self, board, start_pos, end_pos, barrier_dir, adv_pos):
         """
         Check if the step the agent takes is valid (reachable and within max steps).
+
         Parameters
         ----------
         start_pos : tuple
@@ -197,15 +200,16 @@ class StupidAgent(Agent):
                 list_rm.append(i)
             elif (end_result, end_score) == (True, 0.5):
                 continue
-            '''
             else:
-                list_adv_new_board, list_adv_new_pos, list_adv_new_dir = self.all_next_state(list_new_board[i], list_new_pos[i], adv_pos, False)
+                list_adv_new_board, list_adv_new_pos, list_adv_new_dir = self.all_next_state(list_new_board[i],
+                                                                                             list_new_pos[i], adv_pos,
+                                                                                             False)
                 for j in range(len(list_adv_new_board)):
-                    adv_result, adv_score = self.check_endgame(list_adv_new_board[j], list_adv_new_pos[j], list_new_pos[i])
+                    adv_result, adv_score = self.check_endgame(list_adv_new_board[j], list_adv_new_pos[j],
+                                                               list_new_pos[i])
                     if (adv_result, adv_score) == (True, 1):
                         list_rm.append(i)
                         break
-            '''
         list_rm.reverse()
         for k in range(len(list_rm)):  # removing losing position
             list_new_board.pop(list_rm[k])
@@ -225,7 +229,7 @@ class StupidAgent(Agent):
                 for reach_col in range(self.max_my_reach * 2):
                     if (c - self.max_my_reach - reach_col) < 0 or (c - self.max_my_reach + reach_col) >= board_size or (
                             r - self.max_my_reach - reach_row) < 0 or (r - self.max_my_reach + reach_row) >= board_size:
-                        score_i -= 10
+                        score_i -= 999
                     if (r - self.max_my_reach - reach_row) >= 0 and (r - self.max_my_reach + reach_row) < board_size:
                         if (c - self.max_my_reach - reach_col) >= 0 and (
                                 c - self.max_my_reach + reach_col) < board_size:
@@ -236,30 +240,30 @@ class StupidAgent(Agent):
             if (r - ra) > 0:
                 if (c - ca) > 0:
                     if list_new_dir[i] == 0 or list_new_dir[i] == 3:
-                        score_i += 2
+                        score_i += 1
                 elif (c - ca) == 0:
                     if list_new_dir[i] == 0:
-                        score_i += 2
+                        score_i += 1
                 else:
                     if list_new_dir[i] == 0 or list_new_dir[i] == 1:
-                        score_i += 2
+                        score_i += 1
             elif (r - ra) == 0:
                 if (c - ca) > 0:
                     if list_new_dir[i] == 3:
-                        score_i += 2
+                        score_i += 1
                 elif (c - ca) < 0:
                     if list_new_dir[i] == 1:
-                        score_i += 2
+                        score_i += 1
             elif (r - ra) < 0:
                 if (c - ca) > 0:
                     if list_new_dir[i] == 2 or list_new_dir[i] == 3:
-                        score_i += 2
+                        score_i += 1
                 elif (c - ca) == 0:
                     if list_new_dir[i] == 2:
-                        score_i += 2
+                        score_i += 1
                 else:
                     if list_new_dir[i] == 1 or list_new_dir[i] == 2:
-                        score_i += 2
+                        score_i += 1
             # for reach_row in range(self.max_adv_reach*2):
             # if (r-self.max_adv_reach-reach_row)>=0 and (r-self.max_adv_reach+reach_row)<board_size:
             # for reach_col in range(self.max_adv_reach*2):
