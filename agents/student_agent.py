@@ -28,7 +28,7 @@ class StudentAgent(Agent):
         self.opposites = {0: 2, 1: 3, 2: 0, 3: 1}
         self.root_node = None
         self.mcts_width = 3
-        self.best_tree = 1
+        self.best_tree = 3
 
     def step(self, chess_board, my_pos, adv_pos, max_step):
         """
@@ -90,7 +90,7 @@ class StudentAgent(Agent):
         for i in range(len(list_new_board)):
             x1, y1 = list_new_pos[i]
             x2, y2 = adv_pos
-            score = np.append(score, np.abs(x1-x2)+np.abs(y1-y2)+np.abs(x1-self.center)+np.abs(x2-self.center))
+            score = np.append(score, 2*np.abs(x1-x2)+2*np.abs(y1-y2)+np.abs(x1-self.center)+np.abs(x2-self.center))
             if x1 > x2:
                 if y1 > y2:
                     if list_new_dir[i]==0 or list_new_dir[i]==3:
@@ -167,10 +167,10 @@ class StudentAgent(Agent):
                         self.root_node = self.root_node.children[i]
                         self.root_node.parent = None
                         break
-            #print("^^^")
-            #print("found the adv_choosen child as:",self.root_node.my_pos, self.root_node.adv_pos)
-            #print("^^^")
-            #print("number of children before:",len(self.root_node.children)) 
+            print("^^^")
+            print("found the adv_choosen child as:",self.root_node.my_pos, self.root_node.adv_pos)
+            print("^^^")
+            print("number of children before:",len(self.root_node.children)) 
             
             # pruning the mcts tree
             cur_width = self.mcts_width
@@ -184,8 +184,8 @@ class StudentAgent(Agent):
             rm_list = []
             rm_list_score = []
             
-            #print("first position in greedy list pos",greedy_list_pos)
-            #print("first element in greedy list dir",greedy_list_dir)
+            print("position in greedy list pos",greedy_list_pos)
+            print("element in greedy list dir",greedy_list_dir)
             
             for i in range(len(self.root_node.children)):
                 if not (self.root_node.children[i].my_pos, self.root_node.children[i].new_dir) in z:
@@ -223,9 +223,10 @@ class StudentAgent(Agent):
                     node.n += 1
                     node.v += sim_rst
                     node = node.parent
-            max_node_val = self.root_node.children[0].v
+            max_node_val = self.root_node.children[0].v/self.root_node.children[0].n
             max_node = self.root_node.children[0]
-            for j in range(len(self.root_node.children)):
+            for j in range(1,len(self.root_node.children)):
+                print("children",j,"performance:",self.root_node.children[j].v/(self.root_node.children[j].n+0.001))
                 if (self.root_node.children[j].v/(self.root_node.children[j].n+0.001)) > max_node_val:
                     max_node_val = (self.root_node.children[j].v/(self.root_node.children[j].n+0.001))
                     max_node = self.root_node.children[j]
@@ -237,6 +238,9 @@ class StudentAgent(Agent):
             #print("Tree root details:")
             #for i in range(len(self.root_node.children)):
                 #print("children num", i, ",visited", self.root_node.children[i].n,",success",self.root_node.children[i].v)
+            max_node.parent = None
+            self.root_node = max_node
+            print("Max_node v:",self.root_node.v," n:",self.root_node.n," accuracy:",self.root_node.v/self.root_node.n)
             return max_node.my_pos, max_node.new_dir
 
     
