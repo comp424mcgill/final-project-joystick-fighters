@@ -74,7 +74,7 @@ class StudentAgent(Agent):
         if len(list_new_board)==0:
             print("***WARNING: dead end, will execute random move!***")
         
-        self.center = (self.board_size-1)/2
+        #self.center = (self.board_size-1)/2
         
         zip_list = list(zip(list_new_board, list_new_pos, list_new_dir))
         np.random.shuffle(zip_list)
@@ -83,7 +83,7 @@ class StudentAgent(Agent):
         shuffle_new_pos = list(shuffle_new_pos)
         shuffle_new_dir = list(shuffle_new_dir)
         #rand_pos, rand_dir = shuffle_new_pos[0], shuffle_new_dir[0]
-        
+        '''
         score = np.array([])
         for i in range(len(list_new_board)):
             x1, y1 = list_new_pos[i]
@@ -118,9 +118,10 @@ class StudentAgent(Agent):
                         score[i] -= 1
         list_center_idx = np.argsort(score)
         center_board, center_pos, center_dir = list_new_board[list_center_idx[0]], list_new_pos[list_center_idx[0]], list_new_dir[list_center_idx[0]]
+        '''
         it = 0
         if self.root_node == None:
-            self.root_node = self.MCTSNode(center_board, center_pos, adv_pos, False, None, None)
+            self.root_node = shuffle_new_board, shuffle_new_pos, shuffle_new_dir
             '''
             self.root_node.n += 1
             #print("Time1:", time.time()-start_time)
