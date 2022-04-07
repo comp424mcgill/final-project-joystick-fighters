@@ -41,28 +41,98 @@ class LinAgent(Agent):
         (x, y), dir = possiblesteps[index]
         return (x, y), dir
 
-    def preference(self, board,list_step, adv_pos, my_pos):
+    def preference(self, board, list_step, adv_pos, my_pos):
         xm = my_pos[0]
         ym = my_pos[1]
         xa = adv_pos[0]
         ya = adv_pos[1]
         pref = [0] * len(list_step)
         max_step = (board.shape[0] + 1) // 2
-        if max_step>3:
-            max_step=3
+        if max_step > 3:
+            max_step = 3
         for i in range(len(list_step)):
             (x, y), dir = list_step[i]
-            if abs(y - ya) < abs(ym - ya) :
+            if abs(y - ya) < abs(ym - ya):
                 pref[i] += (abs(y - ya) - abs(ym - ya))
             if abs(x - xa) < abs(xm - xa):
                 pref[i] += (abs(x - xa) - abs(xm - xa))
-            if abs(y - ya) < max_step :
-                pref[i] += (abs(y - ya) - max_step)
-            if abs(x - xa) < max_step:
-                pref[i] += (abs(x - xa) - max_step)
-            if abs(x - xa)+abs(y - ya) <=max_step:
-                pref[i]=100
+            barcount = 0
+            for k in range(4):
+                if board[x, y, k]:
+                    barcount += 1
+            if barcount > 2:
+                pref[i] = 1000
+                continue
+            # "u": 0,
+            # "r": 1,
+            # "d": 2,
+            # "l": 3,
+            if dir == 0 and pref[i] <= 0:
+                if x != 0:
+                    if board[(x - 1), y, 0]:
+                        pref[i] -= 1
+                    if board[(x - 1), y, 1]:
+                        pref[i] -= 1
+                if x != board.shape[0] - 1:
+                    if board[(x + 1), y, 0]:
+                        pref[i] -= 1
+                    if board[(x + 1), y, 3]:
+                        pref[i] -= 1
+                if y != board.shape[0] - 1:
+                    if board[x, (y + 1), 1]:
+                        pref[i] -= 1
+                    if board[x, (y + 1), 3]:
+                        pref[i] -= 1
+            if dir == 1 and pref[i] <= 0:
+                if y != 0:
+                    if board[x, (y - 1), 1]:
+                        pref[i] -= 1
+                    if board[x, (y - 1), 0]:
+                        pref[i] -= 1
+                if y != board.shape[0] - 1:
+                    if board[x, (y + 1), 2]:
+                        pref[i] -= 1
+                    if board[x, (y + 1), 1]:
+                        pref[i] -= 1
+                if x != board.shape[0] - 1:
+                    if board[(x + 1), y, 0]:
+                        pref[i] -= 1
+                    if board[(x + 1), y, 2]:
+                        pref[i] -= 1
+            if dir == 2 and pref[i] <= 0:
+                if x != 0:
+                    if board[(x - 1), y, 2]:
+                        pref[i] -= 1
+                    if board[(x - 1), y, 1]:
+                        pref[i] -= 1
+                if x != board.shape[0] - 1:
+                    if board[(x + 1), y, 2]:
+                        pref[i] -= 1
+                    if board[(x + 1), y, 3]:
+                        pref[i] -= 1
+                if y != 0:
+                    if board[x, (y - 1), 1]:
+                        pref[i] -= 1
+                    if board[x, (y - 1), 3]:
+                        pref[i] -= 1
+            if dir == 3 and pref[i] <= 0:
+                if y != 0:
+                    if board[x, (y - 1), 3]:
+                        pref[i] -= 1
+                    if board[x, (y - 1), 0]:
+                        pref[i] -= 1
+                if y != board.shape[0] - 1:
+                    if board[x, (y + 1), 2]:
+                        pref[i] -= 1
+                    if board[x, (y + 1), 3]:
+                        pref[i] -= 1
+                if x != 0:
+                    if board[(x - 1), y, 0]:
+                        pref[i] -= 1
+                    if board[(x - 1), y, 2]:
+                        pref[i] -= 1
         return pref
+
 
     # find all possible steps given current board
 
@@ -131,28 +201,33 @@ class LinAgent(Agent):
                             list_utility[i] = util1 * 100
                             list_res[i] = result1
                             break
-                        if list_utility[i] != -100 and list_res[i] and util1 == 0 and not result1:
-                            dangertest = self.all_steps_possible(temp1, advpos1, mypos1)
-                            trap=self.primitive(temp1,dangertest,mypos1)
+                        if list_utility[i] != -100 and not list_res[i] and util1 == 0 and not result1:
+                            dangertest = self.all_steps_possible(temp1, mypos1, advpos1)
+                            trap=self.primitive(temp1,dangertest,advpos1)
                             if trap:
                                 list_utility[i] = -100
-                                list_res[i] = result1
-                                break
+                                list_res[i] = True
                             else:
                                 list_utility[i] = 0
                                 list_res[i]=False
                                 nottie=True
-                        if list_utility[i] != -100  and util1 == 0 and  result1 and not nottie:
+                        if list_utility[i] != -100  and not list_res[i] and util1 == 0 and  result1 and not nottie:
                             list_utility[i] = 0
                             list_res[i]=True
-
+                    print(list_utility[i])
                     if list_utility[i] >= 0:
                         mustfail = False
 
         for i in range(len(list_step1)):
             if list_utility[i] == 100:
                 return i
-
+        if mustfail==False:
+            ran=random.randint(0, (len(list_step1)-1))
+            while list_utility[ran]<0:
+                ran = random.randint(0, (len(list_step1) - 1))
+            return ran
+        if mustfail:
+            return random.randint(0, (len(list_step1) - 1))
         Rand = True
         pref = self.preference(board,list_step1, adv_pos, my_pos)
         if self.findmaxind(pref)==100:
@@ -170,6 +245,7 @@ class LinAgent(Agent):
                         if z > 1 and tmputil < 0:
                             break
                     list_utility[i] = tmputil / (z + 1) + 2 * sqrt(log(z + 1) / (z + 1))
+                    print(list_utility[i])
                     if tmputil >= 0:
                         mustfail = False
                     if tmputil > 0:
@@ -190,6 +266,7 @@ class LinAgent(Agent):
                     if z > 1 and tmputil < 0:
                         break
                 list_utility[i] = tmputil / (z + 1) + 2 * sqrt(log(z + 1) / (z + 1))
+                print(list_utility[i])
                 if tmputil >= 0:
                     mustfail=False
                 if tmputil > 0:
@@ -448,12 +525,41 @@ class LinAgent(Agent):
         return temp
 
     def primitive(self, board, list_step1, adv_pos):
+        list_utility = [0] * len(list_step1)
+        list_res = [False] * len(list_step1)
         for i in range(len(list_step1)):  # my steps
-                temp = board.copy()
+            temp = board.copy()
+            (x, y), dir = list_step1[i]
+            temp = self.set_barrier(temp, x, y, dir)
+            mypos1 = (x, y)
+            result, util = self.check_endgame(temp, mypos1, adv_pos)
+            if util == 1:
+                return False
+            if util == 0 and result:
+                return False
+            list_utility[i] = util * 100
+            list_res[i] = result
+
+        for i in range(len(list_res)):
+            if list_res[i] == False:
                 (x, y), dir = list_step1[i]
+                temp = board.copy()
                 temp = self.set_barrier(temp, x, y, dir)
                 mypos1 = (x, y)
-                result, util = self.check_endgame(temp, mypos1, adv_pos)
-                if util == 1:
-                    return True
-        return False
+                advsteps = self.all_steps_possible(temp, adv_pos, mypos1)  # adversary steps
+                list_utility[i] = 100
+                if len(advsteps) > 0:
+                    for j in range(len(advsteps)):
+                        temp1 = temp.copy()
+                        (x1, y1), dir1 = advsteps[j]
+                        advpos1 = (x1, y1)
+                        temp1 = self.set_barrier(temp1, x1, y1, dir1)
+                        result1, util1 = self.check_endgame(temp1, mypos1, advpos1)
+                        if util1 == -1:
+                            list_utility[i] = util1 * 100
+                            break
+                        if list_utility[i] != -100 and util1 == 0:
+                            list_utility[i] = 0
+                    if list_utility[i] >= 0:
+                        return False
+        return True
