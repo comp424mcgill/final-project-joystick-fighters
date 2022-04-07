@@ -27,8 +27,8 @@ class StudentAgent(Agent):
         self.moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
         self.opposites = {0: 2, 1: 3, 2: 0, 3: 1}
         self.root_node = None
-        self.mcts_width = 3
-        self.best_tree = 3
+        self.mcts_width = 2
+        self.best_tree = 2
 
     def step(self, chess_board, my_pos, adv_pos, max_step):
         """
@@ -58,7 +58,7 @@ class StudentAgent(Agent):
                 list_rm.append(i)
             elif (end_result, end_score) == (True, 0.5):
                 continue
-            '''
+
             else:
                 list_adv_new_board, list_adv_new_pos, list_adv_new_dir = self.all_next_state(list_new_board[i], list_new_pos[i], adv_pos, False)
                 for j in range(len(list_adv_new_board)):
@@ -66,7 +66,6 @@ class StudentAgent(Agent):
                     if (adv_result, adv_score) == (True, 1):
                         list_rm.append(i)
                         break
-            '''
         list_rm.reverse()
         for k in range(len(list_rm)): # removing losing position
             list_new_board.pop(list_rm[k])
@@ -216,9 +215,9 @@ class StudentAgent(Agent):
             while (time.time()-start_time) < 1.9:
                 it += 1
                 node = self.uct(self.root_node)
-                sim_time = time.time()
+                #sim_time = time.time()
                 sim_rst = self.rand_simulation(node.board, node.my_pos, node.adv_pos, node.my_turn, max_step)
-                print("Iteration random sim takes", time.time()-sim_time)
+                #print("Iteration random sim takes", time.time()-sim_time)
                 while(node!=None):
                     node.n += 1
                     node.v += sim_rst
@@ -226,11 +225,12 @@ class StudentAgent(Agent):
             max_node_val = self.root_node.children[0].v/self.root_node.children[0].n
             max_node = self.root_node.children[0]
             for j in range(1,len(self.root_node.children)):
-                print("children",j,"performance:",self.root_node.children[j].v/(self.root_node.children[j].n+0.001))
                 if (self.root_node.children[j].v/(self.root_node.children[j].n+0.001)) > max_node_val:
                     max_node_val = (self.root_node.children[j].v/(self.root_node.children[j].n+0.001))
                     max_node = self.root_node.children[j]
             end_time = time.time()
+            for j in range(0,len(self.root_node.children)):
+                print("children",j,"performance:",self.root_node.children[j].v/(self.root_node.children[j].n+0.001),"number of children",len(self.root_node.children[j].children))
             #print("max_node, number of children:",len(max_node.children))
             print("time used:",end_time-start_time)
             print("Total iteration in 2s", it)
