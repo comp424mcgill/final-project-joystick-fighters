@@ -27,6 +27,8 @@ class StudentAgent(Agent):
         self.moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
         self.opposites = {0: 2, 1: 3, 2: 0, 3: 1}
         self.root_node = None
+        self.mcts_width = 3
+        self.best_tree = 1
 
     def step(self, chess_board, my_pos, adv_pos, max_step):
         """
@@ -70,7 +72,10 @@ class StudentAgent(Agent):
             list_new_board.pop(list_rm[k])
             list_new_pos.pop(list_rm[k])
             list_new_dir.pop(list_rm[k])
-            
+        
+        if len(list_new_board)==0:
+            print("***WARNING: dead end, will execute random move!***")
+        
         self.center = (self.board_size-1)/2
         
         zip_list = list(zip(list_new_board, list_new_pos, list_new_dir))
@@ -79,35 +84,35 @@ class StudentAgent(Agent):
         shuffle_new_board = np.array(shuffle_new_board)
         shuffle_new_pos = list(shuffle_new_pos)
         shuffle_new_dir = list(shuffle_new_dir)
-        rand_pos, rand_dir = shuffle_new_pos[0], shuffle_new_dir[0]
+        #rand_pos, rand_dir = shuffle_new_pos[0], shuffle_new_dir[0]
         
         score = np.array([])
         for i in range(len(list_new_board)):
             x1, y1 = list_new_pos[i]
             x2, y2 = adv_pos
             score = np.append(score, np.abs(x1-x2)+np.abs(y1-y2)+np.abs(x1-self.center)+np.abs(x2-self.center))
-            if x1 > self.center:
-                if y1 > self.center:
+            if x1 > x2:
+                if y1 > y2:
                     if list_new_dir[i]==0 or list_new_dir[i]==3:
                         score[i] -= 1
-                elif y1 == self.center:
+                elif y1 == y2:
                     if list_new_dir[i]==0:
                         score[i] -= 1
                 else:
                     if list_new_dir[i]==0 or list_new_dir[i]==1:
                         score[i] -= 1
-            elif x1 == self.center:
-                if y1 > self.center:
+            elif x1 == x2:
+                if y1 > y2:
                     if list_new_dir[i]==3:
                         score[i] -= 1
                 else:
                     if list_new_dir[i]==1:
                         score[i] -= 1
             else:
-                if y1 > self.center:
+                if y1 > y2:
                     if list_new_dir[i]==2 or list_new_dir[i]==3:
                         score[i] -= 1
-                elif y1 == self.center:
+                elif y1 == y2:
                     if list_new_dir[i]==2:
                         score[i] -= 1
                 else:
@@ -115,45 +120,125 @@ class StudentAgent(Agent):
                         score[i] -= 1
         list_center_idx = np.argsort(score)
         center_board, center_pos, center_dir = list_new_board[list_center_idx[0]], list_new_pos[list_center_idx[0]], list_new_dir[list_center_idx[0]]
+        it = 0
         if self.root_node == None:
             self.root_node = self.MCTSNode(center_board, center_pos, adv_pos, False, None, None)
+            '''
             self.root_node.n += 1
-            print("Time1:", time.time()-start_time)
+            #print("Time1:", time.time()-start_time)
             self.root_node.v += self.rand_simulation(center_board, center_pos, adv_pos, False, max_step)
-            print("Time2:", time.time()-start_time)
-            list_new_adv_board, list_new_adv_pos, list_new_adv_dir = self.all_next_state(chess_board, my_pos, adv_pos, False)
+            #print("Time2:", time.time()-start_time)
+            list_new_adv_board, list_new_adv_pos, list_new_adv_dir = self.all_next_state(chess_board, center_pos, adv_pos, False)
             for i in range(len(list_new_adv_board)):
                 self.root_node.children.append(self.MCTSNode(list_new_adv_board[i], center_pos, list_new_adv_pos[i], True, self.root_node, list_new_adv_dir[i]))
-            it = 0
-            while (time.time()-start_time) < 29.0:
+            '''
+
+            while (time.time()-start_time) < 29.2:
                 it += 1
-                print("Iteration:", it, "at time:", time.time()-start_time)
+                #print("Iteration:", it, "at time:", time.time()-start_time)
+                #sim_time = time.time()
                 node = self.uct(self.root_node)
                 sim_rst = self.rand_simulation(node.board, node.my_pos, node.adv_pos, node.my_turn, max_step)
+                #print("Iteration random sim takes", time.time()-sim_time)
                 while(node!=None):
                     node.n += 1
                     node.v += sim_rst
                     node = node.parent
+                '''
                 max_node_val = self.root_node.children[0].v
                 max_node = self.root_node.children[0]
+                
                 for j in range(len(self.root_node.children)):
                     if (self.root_node.children[j].v/(self.root_node.children[j].n+0.001)) > max_node_val:
                         max_node_val = (self.root_node.children[j].v/(self.root_node.children[j].n+0.001))
                         max_node = self.root_node.children[j]
+                '''
             print("total iteration in 30s:", it)
-            max_node.parent = None
-            self.root_node = max_node
+            #print("tree root number of children:",len(self.root_node.children))
+            #print("Tree root details:")
+            #for i in range(len(self.root_node.children)):
+                #print("children num", i, ",visited", self.root_node.children[i].n,",success",self.root_node.children[i].v,",my_pos",self.root_node.children[i].my_pos,",adv_pos",self.root_node.children[i].adv_pos)
             return center_pos, center_dir
         else:
-            while (time.time()-start_time) <1.8:
-                
-                pass
-        
-        end_time = time.time()
-        print(end_time-start_time)
-        
-        return center_pos, center_dir
-    
+            # assume that the tree contains the node that adversary chooses
+            for i in range(len(self.root_node.children)):
+                if adv_pos==self.root_node.children[i].adv_pos:
+                    if np.array_equal(chess_board, self.root_node.children[i].board):
+                        self.root_node = self.root_node.children[i]
+                        self.root_node.parent = None
+                        break
+            #print("^^^")
+            #print("found the adv_choosen child as:",self.root_node.my_pos, self.root_node.adv_pos)
+            #print("^^^")
+            #print("number of children before:",len(self.root_node.children)) 
+            
+            # pruning the mcts tree
+            cur_width = self.mcts_width
+            cur_width = min(len(self.root_node.children),len(list_new_board),cur_width)
+            greedy_list_pos, greedy_list_dir = [], []
+            for i in range(cur_width):
+                greedy_list_pos.append(list_new_pos[list_center_idx[i]])
+                greedy_list_dir.append(list_new_dir[list_center_idx[i]])
+            
+            z = list(zip(greedy_list_pos, greedy_list_dir))
+            rm_list = []
+            rm_list_score = []
+            
+            #print("first position in greedy list pos",greedy_list_pos)
+            #print("first element in greedy list dir",greedy_list_dir)
+            
+            for i in range(len(self.root_node.children)):
+                if not (self.root_node.children[i].my_pos, self.root_node.children[i].new_dir) in z:
+                    self.root_node.children[i].parent = None
+                    rm_list.append(i)
+                    rm_list_score.append(self.root_node.children[i].v/(self.root_node.children[i].n+0.001))
+            sorted_list_score = np.argsort(rm_list_score)
+            top_tree = min(self.best_tree,len(rm_list))
+            keep_idx = (np.sort(sorted_list_score[-top_tree:]))[::-1]
+            for i in range(len(keep_idx)):
+                rm_list.pop(keep_idx[i])
+            
+            
+            
+            rm_list.reverse()
+            for i in range(len(rm_list)):
+                self.root_node.children.pop(rm_list[i])
+             
+            #print("removed element:",len(rm_list))
+            print("remaining number of children:", len(self.root_node.children))
+            
+            for i in range(len(self.root_node.children)):
+                print(self.root_node.children[i].my_pos,self.root_node.children[i].new_dir)
+            
+            print("Time starting random simulation:",time.time()-start_time)
+            
+            # search under pruned tree
+            while (time.time()-start_time) < 1.9:
+                it += 1
+                node = self.uct(self.root_node)
+                sim_time = time.time()
+                sim_rst = self.rand_simulation(node.board, node.my_pos, node.adv_pos, node.my_turn, max_step)
+                print("Iteration random sim takes", time.time()-sim_time)
+                while(node!=None):
+                    node.n += 1
+                    node.v += sim_rst
+                    node = node.parent
+            max_node_val = self.root_node.children[0].v
+            max_node = self.root_node.children[0]
+            for j in range(len(self.root_node.children)):
+                if (self.root_node.children[j].v/(self.root_node.children[j].n+0.001)) > max_node_val:
+                    max_node_val = (self.root_node.children[j].v/(self.root_node.children[j].n+0.001))
+                    max_node = self.root_node.children[j]
+            end_time = time.time()
+            #print("max_node, number of children:",len(max_node.children))
+            print("time used:",end_time-start_time)
+            print("Total iteration in 2s", it)
+            #print("*******")
+            #print("Tree root details:")
+            #for i in range(len(self.root_node.children)):
+                #print("children num", i, ",visited", self.root_node.children[i].n,",success",self.root_node.children[i].v)
+            return max_node.my_pos, max_node.new_dir
+
     
     class MCTSNode():
         def __init__(self, board, my_pos, adv_pos, my_turn, parent, new_dir):
@@ -166,8 +251,40 @@ class StudentAgent(Agent):
             self.new_dir = new_dir
             self.n = 0
             self.v = 0
+
             
-        # for a node, return the uct node to do random simulation
+    # for a node, return the uct node to do random simulation
+    def uct(self, node):
+        if not(node.children):
+            if not(node.n):
+                return node
+            else:
+                if node.my_turn:
+                    end_check, _ = self.check_endgame(node.board, node.my_pos, node.adv_pos)
+                else:
+                    end_check, _ = self.check_endgame(node.board, node.adv_pos, node.my_pos)
+                if end_check:
+                    return node
+                list_new_board, list_new_pos, list_new_dir = self.all_next_state(node.board, node.my_pos, node.adv_pos, node.my_turn)
+                for i in range(len(list_new_board)):
+                    if node.my_turn:
+                        new_node = self.MCTSNode(list_new_board[i], list_new_pos[i], node.adv_pos, False, node, list_new_dir[i])
+                    else:
+                        new_node = self.MCTSNode(list_new_board[i], node.my_pos, list_new_pos[i], True, node, list_new_dir[i])
+                    node.children.append(new_node)
+                return node.children[0]
+        else:
+            #print(node.children)
+            uct_val = -np.inf
+            rtn_node = node.children[0]
+            for i in range(len(node.children)):
+                temp = node.children[i].v/(node.children[i].n+0.001) + np.sqrt(2*node.n/(node.children[i].n+0.001))
+                if temp > uct_val:
+                    uct_val = temp
+                    rtn_node = node.children[i]
+            return self.uct(rtn_node)
+        
+    '''  
     def uct(self, node):
         if node.n==0:
             return node
@@ -183,57 +300,256 @@ class StudentAgent(Agent):
                     node.children.append(self.MCTSNode(list_new_board[i], list_new_pos[i], node.children[max_idx].adv_pos, False, node.children[max_idx], list_new_dir[i]))
                 else:
                     node.children.append(self.MCTSNode(list_new_board[i], node.children[max_idx].my_pos, list_new_pos[i], True, node.children[max_idx], list_new_dir[i]))
-            return node.children[max_idx]
+            return node.children[0]
         else:
             return self.uct(node.children[max_idx])
-        
+        '''
         
     def rand_simulation(self, board, my_pos, adv_pos, my_turn, max_step):
         if my_turn:
-            temp = deepcopy(board)
-            result, util = self.check_endgame(temp, my_pos, adv_pos)
+            result, util = self.check_endgame(board, my_pos, adv_pos)
             if result==True:
                 return util
             else:
+                temp = deepcopy(board)
                 r, c = my_pos
                 ra, ca = adv_pos
-                rand_step = np.random.randint(1, max_step+1)
-                for i in range(0, rand_step):
-                    dir = np.random.permutation(4)
-                    for j in range(4):
-                        rand_dir = dir[j]
-                        if not(temp[r,c,rand_dir]):
-                            if ((np.abs(r-ra)+np.abs(c-ca))==1):
-                                if rand_dir==0:
-                                    if ra!=(r-1) and r!=0:
+                while not(result):
+                    rand_step = np.random.randint(0, max_step+1)
+                    for _ in range(rand_step):
+                        #print("current pos before:", r, c)
+                        #print("current cell barrier:",temp[r,c])
+                        dir = np.random.permutation(4)
+                        #print("random perm dir:",dir)
+                        for j in range(5):
+                            if j==4:
+                                break
+                            rand_dir = dir[j]
+                            #print("choosen dir dir:",dir[j],"barrier cond:",temp[r,c,rand_dir],"adv_pos:",ra,ca)
+                            if not(temp[r,c,rand_dir]):
+                                if (r==ra):
+                                    if rand_dir==2 or rand_dir==0:
                                         break
-                                elif rand_dir==1:
-                                    if ca!=(c+1) and c!=(self.board_size-1):
+                                    elif rand_dir==1:
+                                        if ca!=(c+1):
+                                            break
+                                    elif rand_dir==3:
+                                        if ca!=(c-1):
+                                            break
+                                elif (c==ca):
+                                    if rand_dir==1 or rand_dir==3:
                                         break
-                                elif rand_dir!=2:
-                                    if ra!=(r+1) and r!=(self.board_size-1):
-                                        break
+                                    elif rand_dir==0:
+                                        if ra!=(r-1):
+                                            break
+                                    elif rand_dir==2:
+                                        if ra!=(r+1):
+                                            break
                                 else:
-                                    if ca!=(c-1) and c!=0:
+                                    break
+                        # if j==5, meaning current player has no where to go, simply stop moving and put a barrier, result in lose
+                        if j==4:
+                            break
+                        #print("choosen random exp dir:", rand_dir)
+                        if rand_dir==0:
+                            r -= 1
+                        elif rand_dir==1:
+                            c += 1
+                        elif rand_dir==2:
+                            r += 1
+                        else:
+                            c -= 1
+                    #print("current position:", r, c)
+                    rand_barrier_dir = np.random.permutation(4)
+                    #print("random perm:",rand_barrier_dir)
+                    for k in range(4):
+                        b_dir = rand_barrier_dir[k]
+                        if not(temp[r,c,b_dir]):
+                            break
+                    #print("b_dir:", b_dir)
+                    temp = self.set_barrier(temp, r, c, b_dir)
+                    result, util = self.check_endgame(temp, (ra,ca), (r,c))
+                    if result==True:
+                        return 1-util
+                    #print("********")
+                    rand_step = np.random.randint(0, max_step+1)
+                    for _ in range(rand_step):
+                        #print("current pos before:", ra, ca)
+                        #print("current cell barrier:",temp[ra,ca])
+                        dir = np.random.permutation(4)
+                        #print("random perm dir:",dir)
+                        for j in range(5):
+                            if j==4:
+                                break
+                            rand_dir = dir[j]
+                            #print("choosen dir dir:",dir[j],"barrier cond:",temp[ra,ca,rand_dir],"adv_pos", r, c)
+                            if not(temp[ra,ca,rand_dir]):
+                                if (r==ra):
+                                    if rand_dir==0 or rand_dir==2:
                                         break
-                    if rand_dir==0:
-                        r -= 1
-                    elif rand_dir==1:
-                        c += 1
-                    elif rand_dir==2:
-                        r += 1
-                    else:
-                        c -= 1
-                print("current position:", r, c)
-                rand_barrier_dir = np.random.permutation(4)
-                for i in range(4):
-                    b_dir = rand_barrier_dir[i]
-                    if not(temp[r,c,b_dir]):
-                        break
-                    temp = self.set_barrier(temp, r, c, rand_dir)
-            return self.rand_simulation(temp, (r,c), adv_pos, False, max_step)
+                                    elif rand_dir==1:
+                                        if c!=(ca+1):
+                                            break
+                                    elif rand_dir==3:
+                                        if c!=(ca-1):
+                                            break
+                                elif (c==ca):
+                                    if rand_dir==1 or rand_dir==3:
+                                        break
+                                    elif rand_dir==0:
+                                        if r!=(ra-1):
+                                            break
+                                    elif rand_dir==2:
+                                        if r!=(ra+1):
+                                            break
+                                else:
+                                    break
+                        #print("choosen random exp dir:", rand_dir)
+                        if j==4:
+                            break
+                        if rand_dir==0:
+                            ra -= 1
+                        elif rand_dir==1:
+                            ca += 1
+                        elif rand_dir==2:
+                            ra += 1
+                        else:
+                            ca -= 1
+                    #print("current position:", r, c)
+                    rand_barrier_dir = np.random.permutation(4)
+                    #print("random perm:",rand_barrier_dir)
+                    for k in range(4):
+                        b_dir = rand_barrier_dir[k]
+                        if not(temp[ra,ca,b_dir]):
+                            break
+                    #print("b_dir:", b_dir)
+                    temp = self.set_barrier(temp, ra, ca, b_dir)
+                    result, util = self.check_endgame(temp, (r,c), (ra,ca))
+                return util
         else:
-            return -self.rand_simulation(board, adv_pos, my_pos, True, max_step)
+            
+            result, util = self.check_endgame(board, adv_pos, my_pos)
+            if result==True:
+                return 1-util
+            else:
+                temp = deepcopy(board)
+                r, c = my_pos
+                ra, ca = adv_pos
+                while not(result):
+                    rand_step = np.random.randint(0, max_step+1)
+                    for _ in range(rand_step):
+                        #print("current pos before:", ra, ca)
+                        #print("current cell barrier:",temp[ra,ca])
+                        dir = np.random.permutation(4)
+                        #print("random perm dir:",dir)
+                        for j in range(5):
+                            if j==4:
+                                break
+                            rand_dir = dir[j]
+                            #print("choosen dir dir:",dir[j],"barrier cond:",temp[ra,ca,rand_dir],"adv_pos:", r,c)
+                            if not(temp[ra,ca,rand_dir]):
+                                if (r==ra):
+                                    if rand_dir==0 or rand_dir==2:
+                                        break
+                                    elif rand_dir==1:
+                                        if c!=(ca+1):
+                                            break
+                                    elif rand_dir==3:
+                                        if c!=(ca-1):
+                                            break
+                                elif (c==ca):
+                                    if rand_dir==1 or rand_dir==3:
+                                        break
+                                    elif rand_dir==0:
+                                        if r!=(ra-1):
+                                            break
+                                    elif rand_dir==2:
+                                        if r!=(ra+1):
+                                            break
+                                else:
+                                    break
+                        #print("choosen random exp dir:", rand_dir)
+                        if j==4:
+                            break
+                        if rand_dir==0:
+                            ra -= 1
+                        elif rand_dir==1:
+                            ca += 1
+                        elif rand_dir==2:
+                            ra += 1
+                        else:
+                            ca -= 1
+                    #print("current position:", r, c)
+                    rand_barrier_dir = np.random.permutation(4)
+                    #print("random perm:",rand_barrier_dir)
+                    for k in range(4):
+                        b_dir = rand_barrier_dir[k]
+                        if not(temp[ra,ca,b_dir]):
+                            break
+                    #print("b_dir:", b_dir)
+                    temp = self.set_barrier(temp, ra, ca, b_dir)
+                    result, util = self.check_endgame(temp, (r,c), (ra,ca))
+                    
+                    if result==True:
+                        return util
+                    
+                    #print("#############")
+                    
+                    rand_step = np.random.randint(0, max_step+1)
+                    for _ in range(rand_step):
+                        #print("current pos before:", r, c)
+                        #print("current cell barrier:",temp[r,c])
+                        dir = np.random.permutation(4)
+                        #print("random perm dir:",dir)
+                        for j in range(5):
+                            if j==4:
+                                break
+                            rand_dir = dir[j]
+                            #print("choosen dir dir:",dir[j],"barrier cond:",temp[r,c,rand_dir],"adv_pos",ra,ca)
+                            if not(temp[r,c,rand_dir]):
+                                if (r==ra):
+                                    if rand_dir==0 or rand_dir==2:
+                                        break
+                                    elif rand_dir==1:
+                                        if ca!=(c+1):
+                                            break
+                                    elif rand_dir==3:
+                                        if ca!=(c-1):
+                                            break
+                                elif (c==ca):
+                                    if rand_dir==1 or rand_dir==3:
+                                        break
+                                    elif rand_dir==0:
+                                        if ra!=(r-1):
+                                            break
+                                    elif rand_dir==2:
+                                        if ra!=(r+1):
+                                            break
+                                else:
+                                    break
+                        #print("choosen random exp dir:", rand_dir)
+                        if j==4:
+                            break
+                        if rand_dir==0:
+                            r -= 1
+                        elif rand_dir==1:
+                            c += 1
+                        elif rand_dir==2:
+                            r += 1
+                        else:
+                            c -= 1
+                    #print("current position:", r, c)
+                    rand_barrier_dir = np.random.permutation(4)
+                    #print("random perm:",rand_barrier_dir)
+                    for k in range(4):
+                        b_dir = rand_barrier_dir[k]
+                        if not(temp[r,c,b_dir]):
+                            break
+                    #print("b_dir:", b_dir)
+                    temp = self.set_barrier(temp, r, c, b_dir)
+                    result, util = self.check_endgame(temp, (ra,ca), (r,c))
+                    
+                return 1-util
     
     
     def check_endgame(self, board, my_pos, adv_pos):
