@@ -8,6 +8,7 @@ from numpy import sqrt
 from agents.agent import Agent
 from store import register_agent
 
+import time
 """
 minimax with monte carlo, 3 layers of choices with 10 branches of monte carlo algorithm
 
@@ -133,6 +134,75 @@ class LinAgent(Agent):
                         pref[i] -= 1
         return pref
 
+    def checkconnection(self, board,pos, k):
+        x=pos[0]
+        y=pos[1]
+        if k == 0:
+            if x != 0:
+                if board[(x - 1), y, 0]:
+                    return True
+                if board[(x - 1), y, 1]:
+                    return True
+            if x != board.shape[0] - 1:
+                if board[(x + 1), y, 0]:
+                    return True
+                if board[(x + 1), y, 3]:
+                    return True
+            if y != board.shape[0] - 1:
+                if board[x, (y + 1), 1]:
+                    return True
+                if board[x, (y + 1), 3]:
+                    return True
+        if k == 1:
+            if y != 0:
+                if board[x, (y - 1), 1]:
+                    return True
+                if board[x, (y - 1), 0]:
+                    return True
+            if y != board.shape[0] - 1:
+                if board[x, (y + 1), 2]:
+                    return True
+                if board[x, (y + 1), 1]:
+                    return True
+            if x != board.shape[0] - 1:
+                if board[(x + 1), y, 0]:
+                    return True
+                if board[(x + 1), y, 2]:
+                    return True
+        if k == 2:
+            if x != 0:
+                if board[(x - 1), y, 2]:
+                    return True
+                if board[(x - 1), y, 1]:
+                    return True
+            if x != board.shape[0] - 1:
+                if board[(x + 1), y, 2]:
+                    return True
+                if board[(x + 1), y, 3]:
+                    return True
+            if y != 0:
+                if board[x, (y - 1), 1]:
+                    return True
+                if board[x, (y - 1), 3]:
+                    return True
+        if k == 3:
+            if y != 0:
+                if board[x, (y - 1), 3]:
+                    return True
+                if board[x, (y - 1), 0]:
+                    return True
+            if y != board.shape[0] - 1:
+                if board[x, (y + 1), 2]:
+                    return True
+                if board[x, (y + 1), 3]:
+                    return True
+            if x != 0:
+                if board[(x - 1), y, 0]:
+                    return True
+                if board[(x - 1), y, 2]:
+                    return True
+
+        return False
 
     # find all possible steps given current board
 
@@ -527,6 +597,7 @@ class LinAgent(Agent):
     def primitive(self, board, list_step1, adv_pos):
         list_utility = [0] * len(list_step1)
         list_res = [False] * len(list_step1)
+        mustfail = True
         for i in range(len(list_step1)):  # my steps
             temp = board.copy()
             (x, y), dir = list_step1[i]
@@ -534,8 +605,10 @@ class LinAgent(Agent):
             mypos1 = (x, y)
             result, util = self.check_endgame(temp, mypos1, adv_pos)
             if util == 1:
+                mustfail = False
                 return False
             if util == 0 and result:
+                mustfail = False
                 return False
             list_utility[i] = util * 100
             list_res[i] = result
@@ -561,5 +634,11 @@ class LinAgent(Agent):
                         if list_utility[i] != -100 and util1 == 0:
                             list_utility[i] = 0
                     if list_utility[i] >= 0:
+                        mustfail = False
                         return False
-        return True
+        temp = 0
+        for i in range(len(list_step1)):
+            if list_utility[i] == 100:
+                return False
+        return mustfail
+
