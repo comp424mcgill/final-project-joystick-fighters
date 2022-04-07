@@ -58,7 +58,6 @@ class StudentAgent(Agent):
                 list_rm.append(i)
             elif (end_result, end_score) == (True, 0.5):
                 continue
-            '''
             else:
                 list_adv_new_board, list_adv_new_pos, list_adv_new_dir = self.all_next_state(list_new_board[i], list_new_pos[i], adv_pos, False)
                 for j in range(len(list_adv_new_board)):
@@ -66,7 +65,6 @@ class StudentAgent(Agent):
                     if (adv_result, adv_score) == (True, 1):
                         list_rm.append(i)
                         break
-            '''
         list_rm.reverse()
         for k in range(len(list_rm)): # removing losing position
             list_new_board.pop(list_rm[k])
