@@ -30,132 +30,105 @@ class ChangAgent(Agent):
 
     def step(self, chess_board, my_pos, adv_pos, max_step):
         # Moves (Up, Right, Down, Left)
-        size = chess_board.shape[0]
-        possiblesteps=[]
-        k=0
-
-        if size>6:
-            print('large problem')
-            possiblesteps = self.precAdvStep(chess_board, my_pos, adv_pos)
-        else:
-            possiblesteps = self.all_steps_possible(chess_board, my_pos, adv_pos)
+        possiblesteps = self.all_steps_possible(chess_board, my_pos, adv_pos)
         index = self.choice(chess_board, possiblesteps, adv_pos, my_pos)
         (x, y), dir = possiblesteps[index]
         return (x, y), dir
 
-    def checkduplicate(self,list,item):
-        (x,y),dir=item
-        if len(list)==0:
-            return True
-        else:
-            nodub=True
-            for i in range(len(list)):
-                (x1, y1), dir1 = list[i]
-                if x1==x and y1==y and dir1==dir:
-                    return False
-        return True
-
-    #checck if a move connects the barriers
-    def checkconnection(self, board,pos, k):
-        x=pos[0]
-        y=pos[1]
-        if k == 0:
-            if y != 0:
-                if board[x, (y-1), 0]:
-                    return True
-                if board[x, (y-1), 1]:
-                    return True
-            if y!= board.shape[0] - 1:
-                if board[x, (y+1), 0]:
-                    return True
-                if board[x, (y+1), 3]:
-                    return True
-            if x != 0:
-                if board[(x-1), y, 1]:
-                    return True
-                if board[(x-1), y, 3]:
-                    return True
-        if k == 1:
-            if x != 0:
-                if board[(x-1), y, 1]:
-                    return True
-                if board[(x-1), y, 2]:
-                    return True
-            if x != board.shape[0] - 1:
-                if board[(x+1), y, 1]:
-                    return True
-                if board[(x+1), y, 0]:
-                    return True
-            if y != board.shape[0] - 1:
-                if board[x, (y+1), 0]:
-                    return True
-                if board[x, (y+1), 2]:
-                    return True
-        if k == 2:
-            if y != 0:
-                if board[x,(y-1), 2]:
-                    return True
-                if board[x,(y-1), 1]:
-                    return True
-            if y != board.shape[0] - 1:
-                if board[x, (y+1), 2]:
-                    return True
-                if board[x, (y+1), 3]:
-                    return True
-            if x != board.shape[0] - 1:
-                if board[(x+1), y, 1]:
-                    return True
-                if board[(x+1), y, 3]:
-                    return True
-        if k == 3:
-            if x != 0:
-                if board[(x-1), y, 3]:
-                    return True
-                if board[(x-1), y, 2]:
-                    return True
-            if x != board.shape[0] - 1:
-                if board[(x+1), y, 0]:
-                    return True
-                if board[(x+1), y, 3]:
-                    return True
-            if y != 0:
-                if board[x, (y-1), 0]:
-                    return True
-                if board[x, (y-1), 2]:
-                    return True
-
-        return False
-
-    #find all moves that connects a barrier
-    def precAdvStep(self, board, my_pos, adv_pos):
-        list_step = []
-        board_size = board.shape[0]
+    def preference(self, board, list_step, adv_pos, my_pos):
+        xm = my_pos[0]
+        ym = my_pos[1]
+        xa = adv_pos[0]
+        ya = adv_pos[1]
+        pref = [0] * len(list_step)
         max_step = (board.shape[0] + 1) // 2
-        x = my_pos[0]
-        y = my_pos[1]
-        lx = 0
-        ux = board_size
-        ly = lx
-        uy = ux
-        if (x - max_step) > 0:
-            lx = x - max_step
-        if (y - max_step) > 0:
-            ly = y - max_step
-        if (x + max_step) < board_size:
-            ux = x + max_step
-        if (y + max_step) < board_size:
-            uy = y + max_step
-        for i in range(lx, ux):
-            for j in range(ly, uy):
-                if (abs(i - x) + abs(j - y)) <= max_step:
-                    for k in range(4):
-                        temp=self.checkconnection(board, (i,j) ,k)
-                        if temp:
-                            if self.check_valid_step(board, np.array(my_pos), np.array([i, j]), k, adv_pos):
-                                list_step.append(((i, j), k))
-        return list_step
+        if max_step > 3:
+            max_step = 3
+        for i in range(len(list_step)):
+            (x, y), dir = list_step[i]
+            if abs(y - ya) < abs(ym - ya):
+                pref[i] += (abs(y - ya) - abs(ym - ya))
+            if abs(x - xa) < abs(xm - xa):
+                pref[i] += (abs(x - xa) - abs(xm - xa))
+            barcount = 0
+            for k in range(4):
+                if board[x, y, k]:
+                    barcount += 1
+            if barcount > 2:
+                pref[i] = 1000
+                continue
+            # "u": 0,
+            # "r": 1,
+            # "d": 2,
+            # "l": 3,
+            if dir == 0 and pref[i] <= 0:
+                if x != 0:
+                    if board[(x - 1), y, 0]:
+                        pref[i] -= 1
+                    if board[(x - 1), y, 1]:
+                        pref[i] -= 1
+                if x != board.shape[0] - 1:
+                    if board[(x + 1), y, 0]:
+                        pref[i] -= 1
+                    if board[(x + 1), y, 3]:
+                        pref[i] -= 1
+                if y != board.shape[0] - 1:
+                    if board[x, (y + 1), 1]:
+                        pref[i] -= 1
+                    if board[x, (y + 1), 3]:
+                        pref[i] -= 1
+            if dir == 1 and pref[i] <= 0:
+                if y != 0:
+                    if board[x, (y - 1), 1]:
+                        pref[i] -= 1
+                    if board[x, (y - 1), 0]:
+                        pref[i] -= 1
+                if y != board.shape[0] - 1:
+                    if board[x, (y + 1), 2]:
+                        pref[i] -= 1
+                    if board[x, (y + 1), 1]:
+                        pref[i] -= 1
+                if x != board.shape[0] - 1:
+                    if board[(x + 1), y, 0]:
+                        pref[i] -= 1
+                    if board[(x + 1), y, 2]:
+                        pref[i] -= 1
+            if dir == 2 and pref[i] <= 0:
+                if x != 0:
+                    if board[(x - 1), y, 2]:
+                        pref[i] -= 1
+                    if board[(x - 1), y, 1]:
+                        pref[i] -= 1
+                if x != board.shape[0] - 1:
+                    if board[(x + 1), y, 2]:
+                        pref[i] -= 1
+                    if board[(x + 1), y, 3]:
+                        pref[i] -= 1
+                if y != 0:
+                    if board[x, (y - 1), 1]:
+                        pref[i] -= 1
+                    if board[x, (y - 1), 3]:
+                        pref[i] -= 1
+            if dir == 3 and pref[i] <= 0:
+                if y != 0:
+                    if board[x, (y - 1), 3]:
+                        pref[i] -= 1
+                    if board[x, (y - 1), 0]:
+                        pref[i] -= 1
+                if y != board.shape[0] - 1:
+                    if board[x, (y + 1), 2]:
+                        pref[i] -= 1
+                    if board[x, (y + 1), 3]:
+                        pref[i] -= 1
+                if x != 0:
+                    if board[(x - 1), y, 0]:
+                        pref[i] -= 1
+                    if board[(x - 1), y, 2]:
+                        pref[i] -= 1
+        return pref
 
     # find all possible steps given current board
+
     def all_steps_possible(self, board, my_pos, adv_pos):
         list_step = []
         board_size = board.shape[0]
@@ -182,40 +155,7 @@ class ChangAgent(Agent):
                             list_step.append(((i, j), k))
         return list_step
 
-    # find a step that would not kill it self
-    def random_plausible_step(self, board, my_pos, adv_pos):
-        found=False
-        board_size = board.shape[0]
-        max_step = (board.shape[0] + 1) // 2
-        x = my_pos[0]
-        y = my_pos[1]
-        lx = 0
-        ux = board_size-1
-        ly = lx
-        uy = ux
-        if (x - max_step) > 0:
-            lx = x - max_step
-        if (y - max_step) > 0:
-            ly = y - max_step
-        if (x + max_step) < board_size:
-            ux = x + max_step
-        if (y + max_step) < board_size:
-            uy = y + max_step
-        trail=0
-        maxallowable = max_step ** 2 * 2
-        while trail < maxallowable:
-            i=random.randint(lx, ux)
-            j=random.randint(ly, uy)
-            while((abs(i - x) + abs(j - y)) > max_step):
-                i = random.randint(lx, ux)
-                j = random.randint(ly, uy)
-            k = random.randint(0, 3)
-            if self.check_valid_step(board, np.array(my_pos), np.array([i, j]), k, adv_pos):
-                temp=self.set_barrier(board,i,j,k)
-                res, util=self.check_endgame(temp,(i,j),adv_pos)
-                if util>=0:
-                    return ((i, j), k)
-        return ((-1,-1),-1)
+    # find a list of successor board given current board
 
     def choice(self, board, list_step1, adv_pos, my_pos):
         list_utility = [0] * len(list_step1)
@@ -227,16 +167,12 @@ class ChangAgent(Agent):
             temp = self.set_barrier(temp, x, y, dir)
             mypos1 = (x, y)
             result, util = self.check_endgame(temp, mypos1, adv_pos)
-            if util == 1:
+            if util > 0:
                 return i
             if util == 0 and result:
                 mustfail = False
             list_utility[i] = util * 100
             list_res[i] = result
-        # #if tie, get tie
-        # for i in range(len(list_step1)):
-        #     if list_utility[i]==0 and list_res[i]==True:
-        #         return i
 
         for i in range(len(list_res)):
             if list_res[i] == False:
@@ -244,9 +180,8 @@ class ChangAgent(Agent):
                 temp = board.copy()
                 temp = self.set_barrier(temp, x, y, dir)
                 mypos1 = (x, y)
-                advsteps = self.precAdvStep(temp, adv_pos, mypos1)  # adversary steps1
+                advsteps = self.all_steps_possible(temp, adv_pos, mypos1)  # adversary steps
                 list_utility[i] = 100
-                nottie=False
                 if len(advsteps) > 0:
                     for j in range(len(advsteps)):
                         temp1 = temp.copy()
@@ -254,65 +189,83 @@ class ChangAgent(Agent):
                         advpos1 = (x1, y1)
                         temp1 = self.set_barrier(temp1, x1, y1, dir1)
                         result1, util1 = self.check_endgame(temp1, mypos1, advpos1)
-                        if util1 == -1:
+                        if util1 < 0:
                             list_utility[i] = util1 * 100
-                            list_res[i] = result1
                             break
-                        if list_utility[i] != -100 and not list_res[i] and util1 == 0 and not result1:
-                            dangertest = self.precAdvStep(temp1,  advpos1, mypos1) #check if adversary can surround me
-                            trap=False
-                            if len(dangertest)>0:
-                                trap=self.primitive(temp1,dangertest,mypos1)
-                            if trap:
-                                list_utility[i] = -100
-                                list_res[i] = True
-                            else:
-                                list_utility[i] = 0
-                                list_res[i]=False
-                                nottie=True
-                        if list_utility[i] != -100 and not list_res[i] and util1 == 0 and result1 and not nottie:
+                        if list_utility[i] >= 0 and util1 == 0:
                             list_utility[i] = 0
-                            list_res[i]=True
-                else:
-                    list_utility[i] =0
-                if list_utility[i] >= 0:
-                    mustfail = False
-
+                    if list_utility[i] >= 0:
+                        mustfail = False
+        temp = 0
         for i in range(len(list_step1)):
             if list_utility[i] == 100:
                 return i
-
         if mustfail:
             return random.randint(0, (len(list_step1) - 1))
+        preference = self.preference(board, list_step1, adv_pos, my_pos)
+        bestpref = self.findminind(preference)
         Rand = True
-        for i in range(len(list_step1)):
-            if list_res[i] == False:
-                (x, y), dir = list_step1[i]
-                temp = board.copy()
-                temp = self.set_barrier(temp, x, y, dir)
-                mypos1 = (x, y)
-                z = 0
-                tmputil = 0
-                simnum = ((board.shape[0] + 1)//2) ** 2
-                for z in range(simnum // len(list_step1)):
-                    tmputil += 300 * self.randomwalk1(temp, mypos1, adv_pos)
-                    if z > 1 and tmputil < 0:
-                        break
-                list_utility[i] = tmputil / (z + 1) + 2 * sqrt(log(z + 1) / (z + 1))
-                print(list_utility[i])
-                if tmputil >= 2:
-                    mustfail=False
-                if tmputil > 2:
-                    Rand = False
-        if mustfail:
-            return random.randint(0, (len(list_step1) - 1))
-        if Rand == False:
-            return self.findmaxid(list_utility)
+        iternum = len(list_step1) * board.shape[0]
+        count = 0
+        sum = 0
+        so = [0] * len(list_step1)
+        no = [0] * len(list_step1)
+        qo = [-100] * len(list_step1)
+        if bestpref < 0:
+            for i in range(len(list_step1)):
+                if list_res[i] == False and preference[i] < 0:
+                    (x, y), dir = list_step1[i]
+                    temp = board.copy()
+                    temp = self.set_barrier(temp, x, y, dir)
+                    mypos1 = (x, y)
+                    count += 1
+                    no[i] = 1
+                    tmputil = self.lightrandomwalk(temp, mypos1, adv_pos)
+                    sum += tmputil
+                    so[i] = tmputil
+                    qo[i] = tmputil + 2 * sqrt(log(count) / 1)
+                    print(qo[i])
         else:
-            cos=random.randint(0,(len(list_step1)-1))
-            while list_utility[cos]<0:
-                cos = random.randint(0, (len(list_step1) - 1))
-            return cos
+            for i in range(len(list_step1)):
+                if list_res[i] == False:
+                    (x, y), dir = list_step1[i]
+                    temp = board.copy()
+                    temp = self.set_barrier(temp, x, y, dir)
+                    mypos1 = (x, y)
+                    count += 1
+                    no[i] = 1
+                    tmputil = self.lightrandomwalk(temp, mypos1, adv_pos)
+                    sum += tmputil
+                    so[i] = tmputil
+                    qo[i] = tmputil + 2 * sqrt(log(count) / 1)
+                    print(qo[i])
+        while count < iternum:
+            i = self.findmaxid(qo)
+            (x, y), dir = list_step1[i]
+            temp = board.copy()
+            temp = self.set_barrier(temp, x, y, dir)
+            mypos1 = (x, y)
+            count += 1
+            no[i] += 1
+            tmputil = self.lightrandomwalk(temp, mypos1, adv_pos)
+            so[i] += tmputil
+            sum += tmputil
+            qo[i] = (so[i] / no[i]) + 2 * sqrt(log(count) / no[i])
+            print(qo[i])
+        decision = self.findmaxind(qo)
+        if decision > 2:
+            return self.findmaxid(qo)
+        else:
+            temp = random.randint(0, (len(list_step1) - 1))
+            if bestpref < 0:
+                while preference[temp] >= 0:
+                    temp = random.randint(0, (len(list_step1) - 1))
+                return temp
+            else:
+                while not list_res[temp]:
+                    temp = random.randint(0, (len(list_step1) - 1))
+                return temp
+        return random.randint(0, (len(list_step1) - 1))
 
     def set_barrier(self, board, r, c, dir):
         # Set the barrier to True
@@ -322,6 +275,36 @@ class ChangAgent(Agent):
         board[r + move[0], c + move[1], self.opposites[dir]] = True
         return board
 
+    def strictrandomwalk(self, board, my_pos, adv_pos):
+        temp = board.copy()
+        result = False
+        util = 0
+        rec = 1
+        if result:
+            return util
+        while not result:
+            advposstep = self.all_steps_possible(temp, adv_pos, my_pos)
+            if len(advposstep) > 0:
+                choice1 = self.conscience(temp, advposstep, my_pos)
+                (x, y), dir = advposstep[choice1]
+                temp = self.set_barrier(temp, x, y, dir)
+                adv_pos = (x, y)
+                mysteps = self.all_steps_possible(temp, adv_pos, my_pos)
+                if len(mysteps) > 0:
+                    choice2 = self.conscience(temp, mysteps, my_pos)
+                    (x1, y1), dir2 = mysteps[choice2]
+                    rec = rec + 1
+                    temp = self.set_barrier(temp, x1, y1, dir2)
+                    my_pos = (x, y)
+                    result, util = self.check_endgame(temp, my_pos, adv_pos)
+                    if result:
+                        return util
+                else:
+                    return 0
+            else:
+                return 0
+        return util
+
     def randomwalk(self, board, my_pos, adv_pos):
         temp = board.copy()
         result = False
@@ -330,28 +313,34 @@ class ChangAgent(Agent):
         if result:
             return util
         while not result:
-            advposstep = self.random_plausible_step(temp, adv_pos, my_pos)
-            (x, y), dir = advposstep
-            if dir==-1:
-                return -1
-            temp = self.set_barrier(temp, x, y, dir)
-            result, util = self.check_endgame(temp, my_pos, adv_pos)
-            if result:
-                return util
-            adv_pos = (x, y)
-            mysteps = self.random_plausible_step(temp, adv_pos, my_pos)
-            (x1, y1), dir2 = mysteps
-            if dir2==-1:
-                return -1
-            rec = rec + 1
-            temp = self.set_barrier(temp, x1, y1, dir2)
-            my_pos = (x1, y1)
-            result, util = self.check_endgame(temp, my_pos, adv_pos)
-            if result:
-                return util
+            advposstep = self.all_steps_possible(temp, adv_pos, my_pos)
+            if len(advposstep) > 0:
+                if rec % 2 == 0:
+                    choice1 = self.conscience(temp, advposstep, my_pos)
+                else:
+                    choice1 = random.randint(0, (len(advposstep) - 1))
+                (x, y), dir = advposstep[choice1]
+                temp = self.set_barrier(temp, x, y, dir)
+                adv_pos = (x, y)
+                mysteps = self.all_steps_possible(temp, adv_pos, my_pos)
+                if len(mysteps) > 0:
+                    if rec % 2 == 1:
+                        choice2 = self.conscience(temp, mysteps, my_pos)
+                    else:
+                        choice2 = random.randint(0, (len(mysteps) - 1))
+                    (x1, y1), dir2 = mysteps[choice2]
+                    rec = rec + 1
+                    temp = self.set_barrier(temp, x1, y1, dir2)
+                    my_pos = (x, y)
+                    result, util = self.check_endgame(temp, my_pos, adv_pos)
+                    if result:
+                        return util
+                else:
+                    return 0
+            else:
+                return 0
         return util
 
-    #Find max integer in a list
     def findmaxind(selfself, listint):
         max = listint[0]
         for i in range(len(listint)):
@@ -359,7 +348,6 @@ class ChangAgent(Agent):
                 max = listint[i]
         return max
 
-    # Find minimum integer in a list
     def findminind(selfself, listint):
         min = listint[0]
         for i in range(len(listint)):
@@ -367,7 +355,6 @@ class ChangAgent(Agent):
                 min = listint[i]
         return min
 
-    # Find index of largest number in a list
     def findmaxid(selfself, listint):
         max = listint[0]
         ind = 0
@@ -416,9 +403,9 @@ class ChangAgent(Agent):
             return False, 0
         if p0_score != p1_score:  # player 0 wins
             if p0_score > p1_score:
-                return True, 1
+                return True, 10
             else:
-                return True, -1
+                return True, -10
         else:  # tie
             return True, 0
 
@@ -482,7 +469,7 @@ class ChangAgent(Agent):
             temp = self.set_barrier(temp, x, y, dir)
             mypos1 = (x, y)
             result, util = self.check_endgame(temp, mypos1, adv_pos)
-            if util == 1:
+            if util > 0:
                 return i
             if util == 0 and result:
                 mustfail = False
@@ -504,10 +491,10 @@ class ChangAgent(Agent):
                         advpos1 = (x1, y1)
                         temp1 = self.set_barrier(temp1, x1, y1, dir1)
                         result1, util1 = self.check_endgame(temp1, mypos1, advpos1)
-                        if util1 == -1:
+                        if util1 < 0:
                             list_utility[i] = util1 * 100
                             break
-                        if list_utility[i] != -100 and util1 == 0:
+                        if list_utility[i] >= 0 and util1 == 0:
                             list_utility[i] = 0
                     if list_utility[i] >= 0:
                         mustfail = False
@@ -526,18 +513,32 @@ class ChangAgent(Agent):
         return temp
 
     def primitive(self, board, list_step1, adv_pos):
-        mustfail = False
+        list_utility = [0] * len(list_step1)
+        list_res = [False] * len(list_step1)
+        mustfail = True
         for i in range(len(list_step1)):  # my steps
             temp = board.copy()
             (x, y), dir = list_step1[i]
             temp = self.set_barrier(temp, x, y, dir)
             mypos1 = (x, y)
             result, util = self.check_endgame(temp, mypos1, adv_pos)
-            if util == 1:
-                return True
-        return mustfail
+            if util > 0:
+                return i
+            if util == 0:
+                mustfail = False
+            list_utility[i] = util * 100
+            list_res[i] = result
+        if mustfail:
+            return random.randint(0, (len(list_step1) - 1))
+        else:
+            found = False
+            while not found:
+                temp = random.randint(0, (len(list_step1) - 1))
+                if list_utility[temp] >= 0:
+                    found = True
+        return temp
 
-    def randomwalk1(self, board, my_pos, adv_pos):
+    def looserandomwalk(self, board, my_pos, adv_pos):
         temp = board.copy()
         result = False
         util = 0
@@ -545,21 +546,75 @@ class ChangAgent(Agent):
         if result:
             return util
         while not result:
-            advposstep = self.precAdvStep(temp, adv_pos, my_pos)
+            advposstep = self.all_steps_possible(temp, adv_pos, my_pos)
             if len(advposstep) > 0:
-                if rec % 2 == 0:
-                    choice1 = self.conscience(temp, advposstep, my_pos)
-                else:
-                    choice1 = random.randint(0, (len(advposstep) - 1))
+                choice1 = self.conscience(temp, advposstep, my_pos)
                 (x, y), dir = advposstep[choice1]
                 temp = self.set_barrier(temp, x, y, dir)
                 adv_pos = (x, y)
-                mysteps = self.precAdvStep(temp, adv_pos, my_pos)
+                mysteps = self.all_steps_possible(temp, adv_pos, my_pos)
                 if len(mysteps) > 0:
-                    if rec % 2 == 1:
-                        choice2 = self.conscience(temp, mysteps, my_pos)
-                    else:
-                        choice2 = random.randint(0, (len(mysteps) - 1))
+                    choice2 = self.primitive(temp, mysteps, adv_pos)
+                    (x1, y1), dir2 = mysteps[choice2]
+                    rec = rec + 1
+                    temp = self.set_barrier(temp, x1, y1, dir2)
+                    my_pos = (x, y)
+                    result, util = self.check_endgame(temp, my_pos, adv_pos)
+                    if result:
+                        return util
+                else:
+                    return 0
+            else:
+                return 0
+        return util
+
+    def lightrandomwalk(self, board, my_pos, adv_pos):
+        temp = board.copy()
+        result = False
+        util = 0
+        rec = 1
+        if result:
+            return util
+        while not result:
+            advposstep = self.all_steps_possible(temp, adv_pos, my_pos)
+            if len(advposstep) > 0:
+                choice1 = self.primitive(temp, advposstep, my_pos)
+                (x, y), dir = advposstep[choice1]
+                temp = self.set_barrier(temp, x, y, dir)
+                adv_pos = (x, y)
+                mysteps = self.all_steps_possible(temp, adv_pos, my_pos)
+                if len(mysteps) > 0:
+                    choice2 = self.primitive(temp, mysteps, adv_pos)
+                    (x1, y1), dir2 = mysteps[choice2]
+                    rec = rec + 1
+                    temp = self.set_barrier(temp, x1, y1, dir2)
+                    my_pos = (x, y)
+                    result, util = self.check_endgame(temp, my_pos, adv_pos)
+                    if result:
+                        return util
+                else:
+                    return 0
+            else:
+                return 0
+        return util
+
+    def basicrandomwalk(self, board, my_pos, adv_pos):
+        temp = board.copy()
+        result = False
+        util = 0
+        rec = 1
+        if result:
+            return util
+        while not result:
+            advposstep = self.all_steps_possible(temp, adv_pos, my_pos)
+            if len(advposstep) > 0:
+                choice1 = random.randint(0, (len(advposstep) - 1))
+                (x, y), dir = advposstep[choice1]
+                temp = self.set_barrier(temp, x, y, dir)
+                adv_pos = (x, y)
+                mysteps = self.all_steps_possible(temp, adv_pos, my_pos)
+                if len(mysteps) > 0:
+                    choice2 = random.randint(0, (len(mysteps) - 1))
                     (x1, y1), dir2 = mysteps[choice2]
                     rec = rec + 1
                     temp = self.set_barrier(temp, x1, y1, dir2)
