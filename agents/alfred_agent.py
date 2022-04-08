@@ -1,7 +1,5 @@
 # Student agent: Add your own agent here
 from copy import deepcopy
-from secrets import choice
-# from xxlimited import new
 from agents.agent import Agent
 from store import register_agent
 import sys
@@ -35,22 +33,15 @@ class Node:
         c = list(zip(self.child,indices))
         np.random.shuffle(c)
         self.child, indices = zip(*c)
-        #self.child = self.child[indices]
 
         max_c = self.child[len(self.child)-1]
         max_index = len(self.child)-1
-        #print("child has length of: ",len(self.child))
         counter = 0
         for i in range(len(self.child)):
-            #print("counter: ", counter)
             counter += 1
             if (self.child[i].getStatus().getVisitCount() != 0):
                 cur = self.child[i].getStatus().getWinNumber()/self.child[i].getStatus().getVisitCount()
-                #print("win number",self.child[i].getStatus().getWinNumber())
-                #print("Cur = ",cur)
-
                 if cur > max_win:
-                    #print("updated")
                     max_win = cur
                     max_c = self.child[i]
                     max_index = indices[i]
@@ -166,11 +157,9 @@ class MCTS:
     def getNextStep(self):
         start = time.time_ns()
         all = self.getAllPossibleMove(self.root.getStatus(),self.my_pos,self.max_step)
-        #board_status = deepcopy(self.root.getStatus())
         for pos, dir in all:
             board_status = deepcopy(self.root.getStatus())
             board_status.updateMyPos(pos,dir)
-            #board_status.switchPlayer()
             isend, result = self.check_endgame(board_status)    # result = 0, my win
             if isend and result==0:
                 #print("ever here??")
@@ -178,26 +167,13 @@ class MCTS:
         new_step = int(self.max_step/4)
         if new_step ==0:
             new_step += 1
-        if(np.abs(self.my_pos[0]-self.adv_pos[0])+np.abs(self.my_pos[1]-self.adv_pos[1])>4):# or list(self.root.getStatus().getChessBoard()[self.my_pos[0]][self.my_pos[1]]).count(True)==3): # maybe 2?
-                #print("newly added")
+        if(np.abs(self.my_pos[0]-self.adv_pos[0])+np.abs(self.my_pos[1]-self.adv_pos[1])>3):
             best = None
-            # desired_barrier = []
-            # if(self.my_pos[0]-self.adv_pos[0]>0):
-            #     desired_barrier.append(0)
-            # else:
-            #     desired_barrier.append(2)
-            # if(self.my_pos[1]-self.adv_pos[1]>0):
-            #     desired_barrier.append(3)
-            # else:
-            #     desired_barrier.append(1)
-            #desire_barrier =
             for end_pos, barrier_dir in all:
-                #if self.check_valid_step(self.root.getStatus(),0,self.root.getStatus().getMyPos(),end_pos,barrier_dir): # 0 is my turn, 1 is opponent turn
                 if best == None:
                     best = (end_pos,barrier_dir)
                 else:
                     cur_distance = np.abs(best[0][0]-self.adv_pos[0]) + np.abs(best[0][1]-self.adv_pos[1])
-                    #print("current distance: ", cur_distance)
                     bar_around = list(self.root.getStatus().getChessBoard()[best[0][0]][best[0][1]]).count(True)
                     end_pos_bar = list(self.root.getStatus().getChessBoard()[end_pos[0]][end_pos[1]]).count(True)
                     if(end_pos[0]==0 or end_pos[0]==self.root.getStatus().getChessBoard().shape[0]-1):
@@ -225,12 +201,6 @@ class MCTS:
                                     if self.check_valid_step(self.root.getStatus(),0,self.root.getStatus().getMyPos(),end_pos,1):
                                         best = (end_pos,1)
 
-                            # if (self.check_valid_step(self.root.getStatus(),0,self.root.getStatus().getMyPos(),end_pos,desired_barrier[0])):
-                            #     best = (end_pos,desired_barrier[0])
-                            # elif (self.check_valid_step(self.root.getStatus(),0,self.root.getStatus().getMyPos(),end_pos,desired_barrier[0])):
-                            #     best = (end_pos,desired_barrier[1])
-                            # else:
-                            #     best = (end_pos,barrier_dir)
             return best
         else:
 
@@ -238,70 +208,38 @@ class MCTS:
             self.expand(good_node)
             node_to_explore = good_node
             while(time.time_ns()-start<1800000000):    # need to set limit
-                #print("max step is: ", self.max_step)
-                #print("distance: ",np.abs(self.my_pos[0]-self.adv_pos[0])+np.abs(self.my_pos[1]-self.adv_pos[1]))
-                #good_node = self.getGoodNode(self.root)
-
-                #print("MCTS: after expand")
                 if(len(good_node.getChild())>0):
                     node_to_explore = good_node.getChild()[np.random.randint(len(good_node.getChild()))]
                 else:
                     tmp  = good_node.getStatus()
-                    #tmp.changeMaxStep(self.max_step)
+                    tracker = 0
                     while True:
                         output = self.randomstep(tmp)
-                        if output != -1 or output != -2:
+                        if output != -1 or output != -2 or tracker > 100:
                             return output
-                    #return self.randomstep(tmp)
-                #print("MCTS: random child")
+                        tracker += 1
+
                 randomplayresult = self.randomplay(node_to_explore)
-                # if randomplayresult:
-                #     print("win")
-                #print("MCTS: after random play")
+
                 self.backpropagation(node_to_explore,randomplayresult)
-                #counter += 1
-                #print("MCTS step count: ", counter)
+
             winner, bar_i = self.root.getChildMax()
 
             return winner, self.validbar[bar_i]
 
-    # def getGoodNode(self,node):
-    #     good_node = node
-    #     while(len(good_node.getChild())!=0):
-    #         good_node = self.getNodeUCT(good_node)
-
-    #     return good_node
-
-    # def calculate_UCT(self,winNumber,visitCount,totalCount):
-    #     if (visitCount==0):
-    #         return 0# max number
-    #     else:
-    #         return winNumber/visitCount+np.sqrt(2*np.log(totalCount)/visitCount)
-
-    # def getNodeUCT(self,node):
-    #     totalCount = node.getStatus().getVisitCount()
-    #     allUCT = [self.calculate_UCT(element.getStatus().getWinNumber(),element.getStatus().getVisitCount(),totalCount) for element in node.getChild()]
-    #     #print(allUCT)
-    #     #allUCT[allUCT==2147483647]=-1
-    #     #print("allUCT: ",len(allUCT))
-    #     return node.getChild()[np.argmax(allUCT)]
-
     def expand(self,node):
         my_pos= node.getStatus().getMyPos()
         step = node.getStatus().getMaxStep()
-        #print("expand: ",step)
         if self.max_step<5:
             new_step = self.max_step
         else:
             new_step = 4
-        expand_step = 3 if self.max_step>3 else self.max_step
-        # new_step = int(self.max_step)
-        # if new_step == 0:
-        #     new_step += 1
+        expand_step = 4 if self.max_step>4 else self.max_step
+
         allpossiblenextstatus = self.getAllPossibleMove(node.getStatus(),my_pos,expand_step)
         for end_pos, barrier_dir in allpossiblenextstatus:
             #if self.check_valid_step(node.getStatus(),0,node.getStatus().getMyPos(),end_pos,barrier_dir): # 0 is my turn, 1 is opponent turn
-            if(self.eval_step(node.getStatus().getChessBoard(),end_pos)):
+            if(self.eval_step(node.getStatus().getChessBoard(),node.getStatus(),end_pos,barrier_dir)):
                 new_board_status = deepcopy(node.getStatus())
                 new_board_status.updateMyPos(end_pos,barrier_dir)
                 new_board_status.switchPlayer()
@@ -310,7 +248,12 @@ class MCTS:
                 node.addChild(Node(new_board_status,node)) # create new node
 
 
-    def eval_step(self,board,end_pos):
+    def eval_step(self,board,board_status,end_pos,barrier):
+        tmp = deepcopy(board_status)
+        tmp.updateMyPos(end_pos,barrier)
+        isend, result = self.check_endgame(tmp)
+        if (isend and result == 1):
+            return False
         if list(board[end_pos[0]][end_pos[1]]).count(True)>=2:
             return False
         else:
@@ -343,7 +286,6 @@ class MCTS:
             node.getStatus().increaseWinNumber()
 
     def randomplay(self,node):
-        #st = time.time()
         current_chess_board = deepcopy(node.getStatus())
         #current_turn = current_chess_board.getTurn()
 
@@ -353,57 +295,29 @@ class MCTS:
         
         counter = 0
         while(True):
-            #print("need to implement")
-            # generate random move
 
             random_move, random_dir = self.randomstep(current_chess_board)
             if random_dir == -2:
-                #print("ever reached?? -2")
-                #print("win from -2")
                 return 0
             elif random_dir == -1:
-                #print("ever reached?? -1")
-                #print("lose from -1")
                 return 1
-            #print("Counter: ",counter,"next position",random_move, "Barrier Direction: ",random_dir)
-            # check validity
-            # update chessboard
             current_chess_board.updatePos(random_move,random_dir)
             current_chess_board.switchPlayer()
             # updata is end
             isend, result = self.check_endgame(current_chess_board)
             #counter += 1
             if isend:
-                #print("ever end??")
-                #print("simulated iterations: ",counter)
+
                 break
-            #print("infinite loop")
-            
-            #else:
-                #print("lose")
-        #print("end time:", time.time()-st)
+ 
         return result   # 0 my win, 1 adv win, -1 tie
 
     def randomstep(self,chess_board_status):
         # Moves (Up, Right, Down, Left)
         if chess_board_status.getTurn() == 0:   # my turn
-            #ori_pos = deepcopy(chess_board_status.getMyPos())
             my_pos = chess_board_status.getMyPos()
-            #adv_pos = chess_board_status.getAdvPos()
         else:
-            #ori_pos = deepcopy(chess_board_status.getAdvPos())
             my_pos = chess_board_status.getAdvPos()
-            #adv_pos = chess_board_status.getMyPos()
-        #ori_pos = deepcopy(chess_board_status.getMyPos())
-
-        #all_valid = self.getAllPossibleMove(chess_board_status,my_pos,chess_board_status.getMaxStep())
-        #if len(all_valid)==0:
-        #    if chess_board_status.getTurn() == 0:
-        #        return my_pos, -1   # my loss
-        #    else:
-        #        return my_pos, -2 # my win
-        #else:
-        #    return all_valid[np.random.randint(0,len(all_valid))]
 
         counter = 0
         direction = [1,-1]
@@ -588,9 +502,6 @@ class AlfredAgent(Agent):
         time_spent = (time.time_ns()-start)
         if(time_spent>2000000000):
              print("Error: runing out of time")
-        #elif(time_spent>1800000000):
-             #print("almost out of time")
-        # else:
-        #     print("time is ok")
+        #print(time_spent/1000000000)
         return (tuple(next_pos),barrier)
         #return my_pos, self.dir_map["u"]

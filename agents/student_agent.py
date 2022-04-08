@@ -79,19 +79,19 @@ class StudentAgent(Agent):
         
         self.center = (self.board_size-1)/2
         
-        zip_list = list(zip(list_new_board, list_new_pos, list_new_dir))
+        '''zip_list = list(zip(list_new_board, list_new_pos, list_new_dir))
         np.random.shuffle(zip_list)
         shuffle_new_board, shuffle_new_pos, shuffle_new_dir = zip(*zip_list)
         shuffle_new_board = np.array(shuffle_new_board)
         shuffle_new_pos = list(shuffle_new_pos)
-        shuffle_new_dir = list(shuffle_new_dir)
+        shuffle_new_dir = list(shuffle_new_dir)'''
         #rand_pos, rand_dir = shuffle_new_pos[0], shuffle_new_dir[0]
         
         score = np.array([])
         for i in range(len(list_new_board)):
             x1, y1 = list_new_pos[i]
             x2, y2 = adv_pos
-            score = np.append(score, 2*np.abs(x1-x2)+2*np.abs(y1-y2)+np.abs(x1-self.center)+np.abs(x2-self.center))
+            score = np.append(score, np.abs(x1-x2)+np.abs(y1-y2)+np.abs(x1-self.center)+np.abs(x2-self.center)+np.count_nonzero(list_new_board[i][x1,y2])**2)
             if x1 > x2:
                 if y1 > y2:
                     if list_new_dir[i]==0 or list_new_dir[i]==3:
@@ -120,7 +120,8 @@ class StudentAgent(Agent):
                     if list_new_dir[i]==1 or list_new_dir[i]==2:
                         score[i] -= 1
         list_center_idx = np.argsort(score)
-        center_board, center_pos, center_dir = list_new_board[list_center_idx[0]], list_new_pos[list_center_idx[0]], list_new_dir[list_center_idx[0]]
+        rand_idx = np.random.randint(0,3)
+        center_board, center_pos, center_dir = list_new_board[list_center_idx[rand_idx]], list_new_pos[list_center_idx[rand_idx]], list_new_dir[list_center_idx[rand_idx]]
         it = 0
         if self.root_node == None:
             self.root_node = self.MCTSNode(center_board, center_pos, adv_pos, False, None, None)
@@ -154,64 +155,69 @@ class StudentAgent(Agent):
                         max_node_val = (self.root_node.children[j].v/(self.root_node.children[j].n+0.001))
                         max_node = self.root_node.children[j]
                 '''
-            print("total iteration in 30s:", it)
+            #print("total iteration in 30s:", it)
             #print("tree root number of children:",len(self.root_node.children))
             #print("Tree root details:")
             #for i in range(len(self.root_node.children)):
                 #print("children num", i, ",visited", self.root_node.children[i].n,",success",self.root_node.children[i].v,",my_pos",self.root_node.children[i].my_pos,",adv_pos",self.root_node.children[i].adv_pos)
+            end_time = time.time()-start_time
+            if end_time>=30.0:
+                print("Time violation, used time:", end_time)
             return center_pos, center_dir
         else:
             # assume that the tree contains the node that adversary chooses
+            found = False
             for i in range(len(self.root_node.children)):
                 if adv_pos==self.root_node.children[i].adv_pos:
                     if np.array_equal(chess_board, self.root_node.children[i].board):
                         self.root_node = self.root_node.children[i]
                         self.root_node.parent = None
+                        found = True
                         break
-            print("^^^")
-            print("found the adv_choosen child as:",self.root_node.my_pos, self.root_node.adv_pos)
-            print("^^^")
-            print("number of children before:",len(self.root_node.children)) 
+            if not found:
+                #print("***not found***")
+                self.root_node = self.MCTSNode(center_board, center_pos, adv_pos, False, None, None)
+            else:
+                #print("^^^")
+                #print("found the adv_choosen child as:",self.root_node.my_pos, self.root_node.adv_pos)
+                #print("^^^")
+                #print("number of children before:",len(self.root_node.children)) 
             
-            # pruning the mcts tree
-            cur_width = self.mcts_width
-            cur_width = min(len(self.root_node.children),len(list_new_board),cur_width)
-            greedy_list_pos, greedy_list_dir = [], []
-            for i in range(cur_width):
-                greedy_list_pos.append(list_new_pos[list_center_idx[i]])
-                greedy_list_dir.append(list_new_dir[list_center_idx[i]])
+                # pruning the mcts tree
+                cur_width = min(len(list_new_board),self.mcts_width)
+                greedy_list_pos, greedy_list_dir = [], []
+                for i in range(cur_width):
+                    greedy_list_pos.append(list_new_pos[list_center_idx[i]])
+                    greedy_list_dir.append(list_new_dir[list_center_idx[i]])
+                    
+                z = list(zip(greedy_list_pos, greedy_list_dir))
+                rm_list, rm_list_score = [], []
+                    
+                #print("position in greedy list pos",greedy_list_pos)
+                #print("element in greedy list dir",greedy_list_dir)
+                    
+                for i in range(len(self.root_node.children)):
+                    if not (self.root_node.children[i].my_pos, self.root_node.children[i].new_dir) in z:
+                        self.root_node.children[i].parent = None
+                        rm_list.append(i)
+                        rm_list_score.append(self.root_node.children[i].v/(self.root_node.children[i].n+0.001))
+                sorted_list_score = np.argsort(rm_list_score)
+                top_tree = min(self.best_tree,len(rm_list))
+                keep_idx = (np.sort(sorted_list_score[-top_tree:]))[::-1]
+                for i in range(len(keep_idx)):
+                    rm_list.pop(keep_idx[i])
+                    
+                rm_list.reverse()
+                for i in range(len(rm_list)):
+                    self.root_node.children.pop(rm_list[i])
+                    
+                #print("removed element:",len(rm_list))
+                #print("remaining number of children:", len(self.root_node.children))
+                    
+                #for i in range(len(self.root_node.children)):
+                    #print(self.root_node.children[i].my_pos,self.root_node.children[i].new_dir)
             
-            z = list(zip(greedy_list_pos, greedy_list_dir))
-            rm_list = []
-            rm_list_score = []
-            
-            print("position in greedy list pos",greedy_list_pos)
-            print("element in greedy list dir",greedy_list_dir)
-            
-            for i in range(len(self.root_node.children)):
-                if not (self.root_node.children[i].my_pos, self.root_node.children[i].new_dir) in z:
-                    self.root_node.children[i].parent = None
-                    rm_list.append(i)
-                    rm_list_score.append(self.root_node.children[i].v/(self.root_node.children[i].n+0.001))
-            sorted_list_score = np.argsort(rm_list_score)
-            top_tree = min(self.best_tree,len(rm_list))
-            keep_idx = (np.sort(sorted_list_score[-top_tree:]))[::-1]
-            for i in range(len(keep_idx)):
-                rm_list.pop(keep_idx[i])
-            
-            
-            
-            rm_list.reverse()
-            for i in range(len(rm_list)):
-                self.root_node.children.pop(rm_list[i])
-             
-            #print("removed element:",len(rm_list))
-            print("remaining number of children:", len(self.root_node.children))
-            
-            for i in range(len(self.root_node.children)):
-                print(self.root_node.children[i].my_pos,self.root_node.children[i].new_dir)
-            
-            print("Time starting random simulation:",time.time()-start_time)
+            #print("Time starting random simulation:",time.time()-start_time)
             
             # search under pruned tree
             while (time.time()-start_time) < 1.9:
@@ -224,25 +230,31 @@ class StudentAgent(Agent):
                     node.n += 1
                     node.v += sim_rst
                     node = node.parent
+            if not found:
+                return center_pos, center_dir
             max_node_val = self.root_node.children[0].v/self.root_node.children[0].n
             max_node = self.root_node.children[0]
+            
             for j in range(1,len(self.root_node.children)):
                 if (self.root_node.children[j].v/(self.root_node.children[j].n+0.001)) > max_node_val:
                     max_node_val = (self.root_node.children[j].v/(self.root_node.children[j].n+0.001))
                     max_node = self.root_node.children[j]
             end_time = time.time()
-            for j in range(0,len(self.root_node.children)):
-                print("children",j,"performance:",self.root_node.children[j].v/(self.root_node.children[j].n+0.001),"number of children",len(self.root_node.children[j].children))
+            #for j in range(0,len(self.root_node.children)):
+                #print("children",j,"performance:",self.root_node.children[j].v/(self.root_node.children[j].n+0.001),"number of children",len(self.root_node.children[j].children))
             #print("max_node, number of children:",len(max_node.children))
-            print("time used:",end_time-start_time)
-            print("Total iteration in 2s", it)
+            #print("time used:",end_time-start_time)
+            #print("Total iteration in 2s", it)
             #print("*******")
             #print("Tree root details:")
             #for i in range(len(self.root_node.children)):
                 #print("children num", i, ",visited", self.root_node.children[i].n,",success",self.root_node.children[i].v)
             max_node.parent = None
             self.root_node = max_node
-            print("Max_node v:",self.root_node.v," n:",self.root_node.n," accuracy:",self.root_node.v/self.root_node.n)
+            #print("Max_node v:",self.root_node.v," n:",self.root_node.n," accuracy:",self.root_node.v/self.root_node.n)
+            end_time = time.time()-start_time
+            if (end_time>=2.0):
+                print("Time violation, used time:", end_time)
             return max_node.my_pos, max_node.new_dir
 
     
@@ -692,7 +704,13 @@ class StudentAgent(Agent):
                 list_new_board.append(temp)
                 list_new_pos.append((x,y))
                 list_new_dir.append(dir)
-        return list_new_board, list_new_pos, list_new_dir
+        zip_list = list(zip(list_new_board, list_new_pos, list_new_dir))
+        np.random.shuffle(zip_list)
+        shuffle_new_board, shuffle_new_pos, shuffle_new_dir = zip(*zip_list)
+        shuffle_new_board = list(shuffle_new_board)
+        shuffle_new_pos = list(shuffle_new_pos)
+        shuffle_new_dir = list(shuffle_new_dir)
+        return shuffle_new_board, shuffle_new_pos, shuffle_new_dir
     
     # given current state, return the winning state if any, else delete all losing state and shuffle the list
     def preprocess_next_state(self, board, my_pos, adv_pos):
