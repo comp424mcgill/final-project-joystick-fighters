@@ -235,8 +235,8 @@ class StudentAgent(Agent):
             max_node_val = self.root_node.children[0].v/self.root_node.children[0].n
             max_node = self.root_node.children[0]
             
-            if len(self.root_node.children)>50:
-                idx = np.random.permutation(len(self.root_node))
+            if len(self.root_node.children)>20:
+                idx = np.random.permutation(len(self.root_node.children))
                 for i in range(len(idx)):
                     if self.root_node.children[idx[i]].v/(self.root_node.children[idx[i]].n+0.001) > 0.5:
                         max_node = self.root_node.children[idx[i]]
@@ -346,34 +346,40 @@ class StudentAgent(Agent):
                         #print("current cell barrier:",temp[r,c])
                         dir = np.random.permutation(4)
                         #print("random perm dir:",dir)
-                        for j in range(5):
-                            if j==4:
-                                break
+                        cant_move = True
+                        for j in range(4):
                             rand_dir = dir[j]
                             #print("choosen dir dir:",dir[j],"barrier cond:",temp[r,c,rand_dir],"adv_pos:",ra,ca)
                             if not(temp[r,c,rand_dir]):
                                 if (r==ra):
                                     if rand_dir==2 or rand_dir==0:
+                                        cant_move = False
                                         break
                                     elif rand_dir==1:
                                         if ca!=(c+1):
+                                            cant_move = False
                                             break
                                     elif rand_dir==3:
                                         if ca!=(c-1):
+                                            cant_move = False
                                             break
                                 elif (c==ca):
                                     if rand_dir==1 or rand_dir==3:
+                                        cant_move = False
                                         break
                                     elif rand_dir==0:
                                         if ra!=(r-1):
+                                            cant_move = False
                                             break
                                     elif rand_dir==2:
                                         if ra!=(r+1):
+                                            cant_move = False
                                             break
                                 else:
+                                    cant_move = False
                                     break
                         # if j==5, meaning current player has no where to go, simply stop moving and put a barrier, result in lose
-                        if j==4:
+                        if (cant_move):
                             break
                         #print("choosen random exp dir:", rand_dir)
                         if rand_dir==0:
@@ -403,34 +409,40 @@ class StudentAgent(Agent):
                         #print("current cell barrier:",temp[ra,ca])
                         dir = np.random.permutation(4)
                         #print("random perm dir:",dir)
-                        for j in range(5):
-                            if j==4:
-                                break
+                        cant_move = True
+                        for j in range(4):
                             rand_dir = dir[j]
                             #print("choosen dir dir:",dir[j],"barrier cond:",temp[ra,ca,rand_dir],"adv_pos", r, c)
                             if not(temp[ra,ca,rand_dir]):
                                 if (r==ra):
                                     if rand_dir==0 or rand_dir==2:
+                                        cant_move = False
                                         break
                                     elif rand_dir==1:
                                         if c!=(ca+1):
+                                            cant_move = False
                                             break
                                     elif rand_dir==3:
                                         if c!=(ca-1):
+                                            cant_move = False
                                             break
                                 elif (c==ca):
                                     if rand_dir==1 or rand_dir==3:
+                                        cant_move = False
                                         break
                                     elif rand_dir==0:
                                         if r!=(ra-1):
+                                            cant_move = False
                                             break
                                     elif rand_dir==2:
                                         if r!=(ra+1):
+                                            cant_move = False
                                             break
                                 else:
+                                    cant_move = False
                                     break
                         #print("choosen random exp dir:", rand_dir)
-                        if j==4:
+                        if cant_move:
                             break
                         if rand_dir==0:
                             ra -= 1
@@ -467,34 +479,40 @@ class StudentAgent(Agent):
                         #print("current cell barrier:",temp[ra,ca])
                         dir = np.random.permutation(4)
                         #print("random perm dir:",dir)
-                        for j in range(5):
-                            if j==4:
-                                break
+                        cant_move = True
+                        for j in range(4):
                             rand_dir = dir[j]
                             #print("choosen dir dir:",dir[j],"barrier cond:",temp[ra,ca,rand_dir],"adv_pos:", r,c)
                             if not(temp[ra,ca,rand_dir]):
                                 if (r==ra):
                                     if rand_dir==0 or rand_dir==2:
+                                        cant_move = False
                                         break
                                     elif rand_dir==1:
                                         if c!=(ca+1):
+                                            cant_move = False
                                             break
                                     elif rand_dir==3:
                                         if c!=(ca-1):
+                                            cant_move = False
                                             break
                                 elif (c==ca):
                                     if rand_dir==1 or rand_dir==3:
+                                        cant_move = False
                                         break
                                     elif rand_dir==0:
                                         if r!=(ra-1):
+                                            cant_move = False
                                             break
                                     elif rand_dir==2:
                                         if r!=(ra+1):
+                                            cant_move = False
                                             break
                                 else:
+                                    cant_move = False
                                     break
                         #print("choosen random exp dir:", rand_dir)
-                        if j==4:
+                        if cant_move:
                             break
                         if rand_dir==0:
                             ra -= 1
@@ -526,34 +544,40 @@ class StudentAgent(Agent):
                         #print("current cell barrier:",temp[r,c])
                         dir = np.random.permutation(4)
                         #print("random perm dir:",dir)
-                        for j in range(5):
-                            if j==4:
-                                break
+                        cant_move = True
+                        for j in range(4):
                             rand_dir = dir[j]
                             #print("choosen dir dir:",dir[j],"barrier cond:",temp[r,c,rand_dir],"adv_pos",ra,ca)
                             if not(temp[r,c,rand_dir]):
                                 if (r==ra):
                                     if rand_dir==0 or rand_dir==2:
+                                        cant_move = False
                                         break
                                     elif rand_dir==1:
                                         if ca!=(c+1):
+                                            cant_move = False
                                             break
                                     elif rand_dir==3:
                                         if ca!=(c-1):
+                                            cant_move = False
                                             break
                                 elif (c==ca):
                                     if rand_dir==1 or rand_dir==3:
+                                        cant_move = False
                                         break
                                     elif rand_dir==0:
                                         if ra!=(r-1):
+                                            cant_move = False
                                             break
                                     elif rand_dir==2:
                                         if ra!=(r+1):
+                                            cant_move = False
                                             break
                                 else:
+                                    cant_move = False
                                     break
                         #print("choosen random exp dir:", rand_dir)
-                        if j==4:
+                        if cant_move:
                             break
                         if rand_dir==0:
                             r -= 1
