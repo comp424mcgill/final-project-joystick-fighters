@@ -188,7 +188,6 @@ class LinAgent(Agent):
         no=[0]*len(sndpos)
         so=[0]*len(sndpos)
         max=-1000
-        maxid=0
         q1=[]
         n1=[]
         s1=[]
@@ -214,12 +213,11 @@ class LinAgent(Agent):
             qo[i] = tmputil / no[i] + 10 * sqrt(log(count) / (no[i]))
             if qo[i]>max:
                 max=qo[i]
-                maxid=i
             if (time.time_ns() - start_time) >= timeconstraint:
                 ind1=i
                 break
         if (time.time_ns() - start_time) >= timeconstraint:
-            ind = maxid
+            ind = self.findmaxid(qo)
             bri = 0
             if qo[ind] > 10:
                 bri = sndlayindex[ind]
@@ -232,7 +230,7 @@ class LinAgent(Agent):
             print('no time')
             return pos, dir
         while (time.time_ns() - start_time) < timeconstraint:
-            i=maxid
+            i=self.findmaxid(qo)
             count += 1
             no[i] += 1
             k = sndlayindex[i]
@@ -250,29 +248,17 @@ class LinAgent(Agent):
                 na[j]=1
                 sa[j]=tmputil
                 qa[j]=tmputil / na[j] + 10 * sqrt(log(count) / (na[j]))
-                if(qa[j]<min[i]):
-                    min[i]=qa[j]
-                    minid[i]=j
                 qo[i] = so[i] / no[i] + 10 * sqrt(log(count) / (no[i]))
-                if qo[i] > max:
-                    max = qo[i]
-                    maxid = i
             else:
-                j=minid[i]
+                j=self.findminid(qa)
                 rst = self.rand_simulation(statebranch[j], list_new_pos[k], statepos[j],True,max_step)
                 tmputil = 10 * rst
                 so[i] += tmputil
                 na[j]+=1
                 sa[j]+=tmputil
                 qa[j]=sa[j] / na[j] + 10 * sqrt(log(count) / (na[j]))
-                if(qa[j]<min[i]):
-                    min[i]=qa[j]
-                    minid[i]=j
                 qo[i] = so[i] / no[i] + 10 * sqrt(log(count) / (no[i]))
-                if qo[i] > max:
-                    max = qo[i]
-                    maxid = i
-        ind=maxid
+        ind=self.findmaxid(qo)
         bri=0
         if qo[ind]>8:
             bri=sndlayindex[ind]
