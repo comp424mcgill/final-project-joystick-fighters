@@ -38,85 +38,12 @@ class LinAgent(Agent):
 
     def step(self, chess_board, my_pos, adv_pos, max_step):
         # Moves (Up, Right, Down, Left)
-        start_time = time.time()
+        start_time = time.time_ns()
         (x, y), dir = self.choice(chess_board, adv_pos, my_pos, start_time)
 
         return (x, y), dir
 
-
-
-    def checkconnection(self, board,pos, k):
-        x=pos[0]
-        y=pos[1]
-        if k == 0:
-            if x != 0:
-                if board[(x - 1), y, 0]:
-                    return True
-                if board[(x - 1), y, 1]:
-                    return True
-            if x != board.shape[0] - 1:
-                if board[(x + 1), y, 0]:
-                    return True
-                if board[(x + 1), y, 3]:
-                    return True
-            if y != board.shape[0] - 1:
-                if board[x, (y + 1), 1]:
-                    return True
-                if board[x, (y + 1), 3]:
-                    return True
-        if k == 1:
-            if y != 0:
-                if board[x, (y - 1), 1]:
-                    return True
-                if board[x, (y - 1), 0]:
-                    return True
-            if y != board.shape[0] - 1:
-                if board[x, (y + 1), 2]:
-                    return True
-                if board[x, (y + 1), 1]:
-                    return True
-            if x != board.shape[0] - 1:
-                if board[(x + 1), y, 0]:
-                    return True
-                if board[(x + 1), y, 2]:
-                    return True
-        if k == 2:
-            if x != 0:
-                if board[(x - 1), y, 2]:
-                    return True
-                if board[(x - 1), y, 1]:
-                    return True
-            if x != board.shape[0] - 1:
-                if board[(x + 1), y, 2]:
-                    return True
-                if board[(x + 1), y, 3]:
-                    return True
-            if y != 0:
-                if board[x, (y - 1), 1]:
-                    return True
-                if board[x, (y - 1), 3]:
-                    return True
-        if k == 3:
-            if y != 0:
-                if board[x, (y - 1), 3]:
-                    return True
-                if board[x, (y - 1), 0]:
-                    return True
-            if y != board.shape[0] - 1:
-                if board[x, (y + 1), 2]:
-                    return True
-                if board[x, (y + 1), 3]:
-                    return True
-            if x != 0:
-                if board[(x - 1), y, 0]:
-                    return True
-                if board[(x - 1), y, 2]:
-                    return True
-
-        return False
-
     # find all possible steps given current board
-
     def all_steps_possible(self, board, my_pos, adv_pos):
         list_step = []
         board_size = board.shape[0]
@@ -148,8 +75,10 @@ class LinAgent(Agent):
         list_new_board, list_new_pos, list_new_dir = self.all_next_state(board, my_pos, adv_pos, True)
         list_utility = [0] * len(list_new_pos)
         list_res = [False] * len(list_new_pos)
+        list_res1=[False] * len(list_new_pos)
         ind1=0
         mustfail = True
+        timeconstraint=1990000000
         for i in range(len(list_new_dir)):  # my steps
             result, util = self.check_endgame(list_new_board[i], list_new_pos[i], adv_pos)
             if util == 1:
@@ -162,14 +91,15 @@ class LinAgent(Agent):
                 mustfail = False
             list_utility[i] = util * 5
             list_res[i] = result
-            if (time.time() - start_time) >= 1.9:
+            list_res1[i] = result
+            if (time.time_ns() - start_time) >= timeconstraint:
                 ind1=i
                 break
         sndlayindex=[]
         sndpos=[]
         sndstate=[]
         branchcount=[]
-        if (time.time() - start_time) >= 1.9 and not mustfail:
+        if (time.time_ns() - start_time) >= timeconstraint and not mustfail:
                 i = random.randint(0, (ind1))
                 while list_utility[i]<0:
                     i = random.randint(0, (ind1))
@@ -178,7 +108,7 @@ class LinAgent(Agent):
                 print(time.time())
                 print('no time')
                 return pos, dir
-        if (time.time() - start_time) >= 1.9 and mustfail:
+        if (time.time_ns() - start_time) >= timeconstraint and mustfail:
             i = random.randint((ind1), (len(list_new_dir)-1))
             pos = list_new_pos[i]
             dir = list_new_dir[i]
@@ -217,10 +147,10 @@ class LinAgent(Agent):
                         sndpos.append(list_new_pos2)
                         sndstate.append(list_new_board2)
                         branchcount.append(len(list_new_pos2))
-                    if (time.time() - start_time) >= 1.9:
+                    if (time.time_ns() - start_time) >= timeconstraint:
                         ind1 = i
                         break
-        if (time.time() - start_time) >= 1.9 and not mustfail:
+        if (time.time_ns() - start_time) >= timeconstraint and not mustfail:
                 i = random.randint(0, (ind1))
                 while list_utility[i]<0:
                     i = random.randint(0, (ind1))
@@ -229,7 +159,7 @@ class LinAgent(Agent):
                 print(time.time())
                 print('no time')
                 return pos, dir
-        if (time.time() - start_time) >= 1.9 and mustfail:
+        if (time.time_ns() - start_time) >= timeconstraint and mustfail:
             i = random.randint((ind1), (len(list_new_dir)-1))
             pos = list_new_pos[i]
             dir = list_new_dir[i]
@@ -241,6 +171,8 @@ class LinAgent(Agent):
             mustfail=True
         if mustfail:
             i=random.randint(0, (len(list_new_dir) - 1))
+            while list_res1[i]:
+                i = random.randint(0, (len(list_new_dir) - 1))
             pos = list_new_pos[i]
             dir = list_new_dir[i]
             print(time.time())
@@ -250,10 +182,14 @@ class LinAgent(Agent):
         qo=[-1000]*len(sndpos)
         no=[0]*len(sndpos)
         so=[0]*len(sndpos)
+        max=-1000
+        maxid=0
         q1=[]
         n1=[]
         s1=[]
         fv=[0]*len(sndpos)
+        min=[1000]*len(sndpos)
+        minid=[0]*len(sndpos)
         count=0
         max_step = (board.shape[0] + 1) // 2
         for i in range(len(sndpos)):
@@ -270,20 +206,28 @@ class LinAgent(Agent):
             rst=self.rand_simulation(list_new_board[k], list_new_pos[k], adv_pos,  False, max_step)
             tmputil =10 * rst
             so[i] =tmputil
-            qo[i] = tmputil / no[i] + 2 * sqrt(log(count) / (no[i]))
-            if (time.time() - start_time) >= 1.9:
+            qo[i] = tmputil / no[i] + 10 * sqrt(log(count) / (no[i]))
+            if qo[i]>max:
+                max=qo[i]
+                maxid=i
+            if (time.time_ns() - start_time) >= timeconstraint:
                 ind1=i
                 break
-        if (time.time() - start_time) >= 1.9:
-            i = random.randint(0, (len(qo) - 1))
-            bri = sndlayindex[i]
+        if (time.time_ns() - start_time) >= timeconstraint:
+            ind = maxid
+            bri = 0
+            if qo[ind] > 10:
+                bri = sndlayindex[ind]
+            else:
+                i = random.randint(0, (ind1))
+                bri = sndlayindex[i]
             pos = list_new_pos[bri]
             dir = list_new_dir[bri]
             print(time.time())
             print('no time')
             return pos, dir
-        while (time.time() - start_time)<1.9:
-            i=self.findmaxid(qo)
+        while (time.time_ns() - start_time) < timeconstraint:
+            i=maxid
             count += 1
             no[i] += 1
             k = sndlayindex[i]
@@ -301,26 +245,38 @@ class LinAgent(Agent):
                 na[j]=1
                 sa[j]=tmputil
                 qa[j]=tmputil / na[j] + 10 * sqrt(log(count) / (na[j]))
+                if(qa[j]<min[i]):
+                    min[i]=qa[j]
+                    minid[i]=j
                 qo[i] = so[i] / no[i] + 10 * sqrt(log(count) / (no[i]))
+                if qo[i] > max:
+                    max = qo[i]
+                    maxid = i
             else:
-                j=self.findminid(qa)
+                j=minid[i]
                 rst = self.rand_simulation(statebranch[j], list_new_pos[k], statepos[j],True,max_step)
                 tmputil = 10 * rst
                 so[i] += tmputil
                 na[j]+=1
                 sa[j]+=tmputil
                 qa[j]=sa[j] / na[j] + 10 * sqrt(log(count) / (na[j]))
+                if(qa[j]<min[i]):
+                    min[i]=qa[j]
+                    minid[i]=j
                 qo[i] = so[i] / no[i] + 10 * sqrt(log(count) / (no[i]))
-        ind=self.findmaxid(qo)
+                if qo[i] > max:
+                    max = qo[i]
+                    maxid = i
+        ind=maxid
         bri=0
-        if qo[ind]>10:
+        if qo[ind]>8:
             bri=sndlayindex[ind]
         else:
             i=random.randint(0,(len(qo)-1))
             bri = sndlayindex[i]
         pos = list_new_pos[bri]
         dir = list_new_dir[bri]
-        print(time.time())
+        print((time.time_ns() - start_time))
         print('dec')
         return pos, dir
         # if mustfail:
@@ -793,36 +749,6 @@ class LinAgent(Agent):
                     result, util = self.check_endgame(temp, (ra, ca), (r, c))
 
                 return -util
-
-    def randomwalk(self, board, my_pos, adv_pos):
-                temp = board.copy()
-                result = False
-                util = 0
-                rec = 1
-                if result:
-                    return util
-                while not result:
-                    advposstep = self.some_steps_possible(temp, adv_pos, my_pos)
-                    if len(advposstep) > 0:
-                        choice1 = random.randint(0, (len(advposstep) - 1))
-                        (x, y), dir = advposstep[choice1]
-                        temp = self.set_barrier(temp, x, y, dir)
-                        adv_pos = (x, y)
-                        mysteps = self.some_steps_possible(temp, adv_pos, my_pos)
-                        if len(mysteps) > 0:
-                            choice2 = random.randint(0, (len(mysteps) - 1))
-                            (x1, y1), dir2 = mysteps[choice2]
-                            rec = rec + 1
-                            temp = self.set_barrier(temp, x1, y1, dir2)
-                            my_pos = (x, y)
-                            result, util = self.check_endgame(temp, my_pos, adv_pos)
-                            if result:
-                                return util
-                        else:
-                            return 0
-                    else:
-                        return 0
-                return util
 
     def some_steps_possible(self, board, my_pos, adv_pos):
         list_step = []
