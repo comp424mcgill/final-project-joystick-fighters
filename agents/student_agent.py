@@ -235,11 +235,18 @@ class StudentAgent(Agent):
             max_node_val = self.root_node.children[0].v/self.root_node.children[0].n
             max_node = self.root_node.children[0]
             
-            for j in range(1,len(self.root_node.children)):
-                if (self.root_node.children[j].v/(self.root_node.children[j].n+0.001)) > max_node_val:
-                    max_node_val = (self.root_node.children[j].v/(self.root_node.children[j].n+0.001))
-                    max_node = self.root_node.children[j]
-            end_time = time.time()
+            if len(self.root_node.children)>20:
+                idx = np.random.permutation(len(self.root_node.children))
+                for i in range(len(idx)):
+                    if self.root_node.children[idx[i]].v/(self.root_node.children[idx[i]].n+0.001) > 0.5:
+                        max_node = self.root_node.children[idx[i]]
+                        break
+            else:
+                for j in range(1,len(self.root_node.children)):
+                    if (self.root_node.children[j].v/(self.root_node.children[j].n+0.001)) > max_node_val:
+                        max_node_val = (self.root_node.children[j].v/(self.root_node.children[j].n+0.001))
+                        max_node = self.root_node.children[j]
+            #end_time = time.time()
             #for j in range(0,len(self.root_node.children)):
                 #print("children",j,"performance:",self.root_node.children[j].v/(self.root_node.children[j].n+0.001),"number of children",len(self.root_node.children[j].children))
             #print("max_node, number of children:",len(max_node.children))
