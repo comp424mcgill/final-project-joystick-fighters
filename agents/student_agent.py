@@ -309,6 +309,8 @@ class StudentAgent(Agent):
             uct_val = -np.inf
             rtn_node = node.children[0]
             for i in range(len(node.children)):
+                if node.children[i].n==0:
+                    return self.uct(node.children[i])
                 temp = node.children[i].v/(node.children[i].n+0.001) + np.sqrt(2*node.n/(node.children[i].n+0.001))
                 if temp > uct_val:
                     uct_val = temp
