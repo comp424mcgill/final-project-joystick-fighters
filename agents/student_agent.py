@@ -220,7 +220,7 @@ class StudentAgent(Agent):
             #print("Time starting random simulation:",time.time()-start_time)
             
             # search under pruned tree
-            while (time.time()-start_time) < 1.9:
+            while (time.time()-start_time) < 1.8:
                 it += 1
                 node = self.uct(self.root_node)
                 #sim_time = time.time()
