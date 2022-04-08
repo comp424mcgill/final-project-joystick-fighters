@@ -220,7 +220,7 @@ class StudentAgent(Agent):
             #print("Time starting random simulation:",time.time()-start_time)
             
             # search under pruned tree
-            while (time.time()-start_time) < 1.8:
+            while (time.time()-start_time) < 1.6:
                 it += 1
                 node = self.uct(self.root_node)
                 #sim_time = time.time()
@@ -303,6 +303,9 @@ class StudentAgent(Agent):
             uct_val = -np.inf
             rtn_node = node.children[0]
             for i in range(len(node.children)):
+                if node.children[i].n==0:
+                    rtn_node = node.children[i]
+                    break
                 temp = node.children[i].v/(node.children[i].n+0.001) + np.sqrt(2*node.n/(node.children[i].n+0.001))
                 if temp > uct_val:
                     uct_val = temp
