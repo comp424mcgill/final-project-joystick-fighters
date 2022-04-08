@@ -141,12 +141,14 @@ class LinAgent(Agent):
                     for k in range(4):
                         if self.check_valid_step(board, np.array(my_pos), np.array([i, j]), k, adv_pos):
                             list_step.append(((i, j), k))
+
         return list_step
 
     def choice(self, board,  adv_pos, my_pos, start_time):
         list_new_board, list_new_pos, list_new_dir = self.all_next_state(board, my_pos, adv_pos, True)
         list_utility = [0] * len(list_new_pos)
         list_res = [False] * len(list_new_pos)
+        ind1=0
         mustfail = True
         for i in range(len(list_new_dir)):  # my steps
             result, util = self.check_endgame(list_new_board[i], list_new_pos[i], adv_pos)
@@ -160,10 +162,30 @@ class LinAgent(Agent):
                 mustfail = False
             list_utility[i] = util * 5
             list_res[i] = result
+            if (time.time() - start_time) >= 1.9:
+                ind1=i
+                break
         sndlayindex=[]
         sndpos=[]
         sndstate=[]
         branchcount=[]
+        if (time.time() - start_time) >= 1.9 and not mustfail:
+                i = random.randint(0, (ind1))
+                while list_utility[i]<0:
+                    i = random.randint(0, (ind1))
+                pos = list_new_pos[i]
+                dir = list_new_dir[i]
+                print(time.time())
+                print('no time')
+                return pos, dir
+        if (time.time() - start_time) >= 1.9 and mustfail:
+            i = random.randint((ind1), (len(list_new_dir)-1))
+            pos = list_new_pos[i]
+            dir = list_new_dir[i]
+            print(time.time())
+            print('no time')
+            return pos, dir
+
         for i in range(len(list_res)):
             if list_res[i] == False:
                 list_new_board2, list_new_pos2, _ = self.all_next_state(list_new_board[i], list_new_pos[i], adv_pos, False)
@@ -195,6 +217,26 @@ class LinAgent(Agent):
                         sndpos.append(list_new_pos2)
                         sndstate.append(list_new_board2)
                         branchcount.append(len(list_new_pos2))
+                    if (time.time() - start_time) >= 1.9:
+                        ind1 = i
+                        break
+        if (time.time() - start_time) >= 1.9 and not mustfail:
+                i = random.randint(0, (ind1))
+                while list_utility[i]<0:
+                    i = random.randint(0, (ind1))
+                pos = list_new_pos[i]
+                dir = list_new_dir[i]
+                print(time.time())
+                print('no time')
+                return pos, dir
+        if (time.time() - start_time) >= 1.9 and mustfail:
+            i = random.randint((ind1), (len(list_new_dir)-1))
+            pos = list_new_pos[i]
+            dir = list_new_dir[i]
+            print(time.time())
+            print('no time')
+            return pos, dir
+
         if len(sndlayindex)==0:
             mustfail=True
         if mustfail:
@@ -229,7 +271,17 @@ class LinAgent(Agent):
             tmputil =10 * rst
             so[i] =tmputil
             qo[i] = tmputil / no[i] + 2 * sqrt(log(count) / (no[i]))
-
+            if (time.time() - start_time) >= 1.9:
+                ind1=i
+                break
+        if (time.time() - start_time) >= 1.9:
+            i = random.randint(0, (len(qo) - 1))
+            bri = sndlayindex[i]
+            pos = list_new_pos[bri]
+            dir = list_new_dir[bri]
+            print(time.time())
+            print('no time')
+            return pos, dir
         while (time.time() - start_time)<1.9:
             i=self.findmaxid(qo)
             count += 1
