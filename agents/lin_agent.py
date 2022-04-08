@@ -35,6 +35,7 @@ class LinAgent(Agent):
         }
         self.moves = ((-1, 0), (0, 1), (1, 0), (0, -1))
         self.opposites = {0: 2, 1: 3, 2: 0, 3: 1}
+        self.root_node = None
 
     def step(self, chess_board, my_pos, adv_pos, max_step):
         # Moves (Up, Right, Down, Left)
@@ -78,7 +79,11 @@ class LinAgent(Agent):
         list_res1=[False] * len(list_new_pos)
         ind1=0
         mustfail = True
-        timeconstraint=1990000000
+        if self.root_node==None:
+            timeconstraint = 29980000000
+        else:
+            timeconstraint=1980000000
+        self.root_node=1
         for i in range(len(list_new_dir)):  # my steps
             result, util = self.check_endgame(list_new_board[i], list_new_pos[i], adv_pos)
             if util == 1:
@@ -279,15 +284,6 @@ class LinAgent(Agent):
         print((time.time_ns() - start_time))
         print('dec')
         return pos, dir
-        # if mustfail:
-        #     return random.randint(0, (len(list_step1) - 1))
-        # if Rand == False:
-        #     return self.findmaxid(list_utility)
-        # else:
-        #     cos=random.randint(0,(len(list_step1)-1))
-        #     while list_utility[cos]<0:
-        #         cos = random.randint(0, (len(list_step1) - 1))
-        #     return cos
 
     def set_barrier(self, board, r, c, dir):
         # Set the barrier to True
