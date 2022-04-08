@@ -232,7 +232,7 @@ class LinAgent(Agent):
             print('no time')
             return pos, dir
         while (time.time_ns() - start_time) < timeconstraint:
-            i=maxid
+            i=self.findmaxid(qo)
             count += 1
             no[i] += 1
             k = sndlayindex[i]
