@@ -80,9 +80,9 @@ class LinAgent(Agent):
         ind1=0
         mustfail = True
         if self.root_node==None:
-            timeconstraint = 29980000000
+            timeconstraint = 29680000000
         else:
-            timeconstraint=1980000000
+            timeconstraint=1680000000
         self.root_node=1
         for i in range(len(list_new_dir)):  # my steps
             result, util = self.check_endgame(list_new_board[i], list_new_pos[i], adv_pos)
@@ -751,44 +751,3 @@ class LinAgent(Agent):
 
                 return -util
 
-    def some_steps_possible(self, board, my_pos, adv_pos):
-        list_step = []
-        board_size = board.shape[0]
-        max_step = (board.shape[0] + 1) // 2
-        x = my_pos[0]
-        y = my_pos[1]
-        lx = 0
-        ux = board_size
-        ly = lx
-        uy = ux
-        found=False
-        while not found:
-            mx = random.randint(0, max_step)
-            my=random.randint(0,(max_step-mx))
-            if (x - mx) > 0:
-                lx = x - mx
-            if (x + mx) < board_size:
-                ux = x + mx + 1
-            if (y - my) > 0:
-                ly = y - my
-            if (y + my) < board_size:
-                uy = y + my + 1
-            for i in range(lx, ux):
-                for j in range(ly, uy):
-                    found=False
-                    for k in range(4):
-                        if self.check_valid_step(board, np.array(my_pos), np.array([i, j]), k, adv_pos):
-                            found=True
-                            list_step.append(((i, j), k))
-                if found:
-                    break
-                for j in range(ly, uy):
-                    rj=ly+uy-j-1
-                    found=False
-                    for k in range(4):
-                        if self.check_valid_step(board, np.array(my_pos), np.array([i, rj]), k, adv_pos):
-                            found=True
-                            list_step.append(((i, rj), k))
-                    if found:
-                        break
-        return list_step
