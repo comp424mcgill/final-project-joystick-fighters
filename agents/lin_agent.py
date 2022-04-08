@@ -138,68 +138,68 @@ class LinAgent(Agent):
         x=pos[0]
         y=pos[1]
         if k == 0:
+            if y != 0:
+                if board[x, (y-1), 0]:
+                    return True
+                if board[x, (y-1), 1]:
+                    return True
+            if y!= board.shape[0] - 1:
+                if board[x, (y+1), 0]:
+                    return True
+                if board[x, (y+1), 3]:
+                    return True
             if x != 0:
-                if board[(x - 1), y, 0]:
+                if board[(x-1), y, 1]:
                     return True
-                if board[(x - 1), y, 1]:
-                    return True
-            if x != board.shape[0] - 1:
-                if board[(x + 1), y, 0]:
-                    return True
-                if board[(x + 1), y, 3]:
-                    return True
-            if y != board.shape[0] - 1:
-                if board[x, (y + 1), 1]:
-                    return True
-                if board[x, (y + 1), 3]:
+                if board[(x-1), y, 3]:
                     return True
         if k == 1:
-            if y != 0:
-                if board[x, (y - 1), 1]:
+            if x != 0:
+                if board[(x-1), y, 1]:
                     return True
-                if board[x, (y - 1), 0]:
-                    return True
-            if y != board.shape[0] - 1:
-                if board[x, (y + 1), 2]:
-                    return True
-                if board[x, (y + 1), 1]:
+                if board[(x-1), y, 2]:
                     return True
             if x != board.shape[0] - 1:
-                if board[(x + 1), y, 0]:
+                if board[(x+1), y, 1]:
                     return True
-                if board[(x + 1), y, 2]:
+                if board[(x+1), y, 0]:
+                    return True
+            if y != board.shape[0] - 1:
+                if board[x, (y+1), 0]:
+                    return True
+                if board[x, (y+1), 2]:
                     return True
         if k == 2:
-            if x != 0:
-                if board[(x - 1), y, 2]:
-                    return True
-                if board[(x - 1), y, 1]:
-                    return True
-            if x != board.shape[0] - 1:
-                if board[(x + 1), y, 2]:
-                    return True
-                if board[(x + 1), y, 3]:
-                    return True
             if y != 0:
-                if board[x, (y - 1), 1]:
+                if board[x,(y-1), 2]:
                     return True
-                if board[x, (y - 1), 3]:
-                    return True
-        if k == 3:
-            if y != 0:
-                if board[x, (y - 1), 3]:
-                    return True
-                if board[x, (y - 1), 0]:
+                if board[x,(y-1), 1]:
                     return True
             if y != board.shape[0] - 1:
-                if board[x, (y + 1), 2]:
+                if board[x, (y+1), 2]:
                     return True
-                if board[x, (y + 1), 3]:
+                if board[x, (y+1), 3]:
                     return True
+            if x != board.shape[0] - 1:
+                if board[(x+1), y, 1]:
+                    return True
+                if board[(x+1), y, 3]:
+                    return True
+        if k == 3:
             if x != 0:
-                if board[(x - 1), y, 0]:
+                if board[(x-1), y, 3]:
                     return True
-                if board[(x - 1), y, 2]:
+                if board[(x-1), y, 2]:
+                    return True
+            if x != board.shape[0] - 1:
+                if board[(x+1), y, 0]:
+                    return True
+                if board[(x+1), y, 3]:
+                    return True
+            if y != 0:
+                if board[x, (y-1), 0]:
+                    return True
+                if board[x, (y-1), 2]:
                     return True
 
         return False
@@ -224,15 +224,48 @@ class LinAgent(Agent):
             ux = x + max_step + 1
         if (y + max_step) < board_size:
             uy = y + max_step + 1
+        count=0
+        for i in range(lx, ux):
+            for j in range(ly, uy):
+                if (abs(i - x) + abs(j - y)) <= max_step:
+                    count += 1
+                    for k in range(4):
+                        if self.check_valid_step(board, np.array(my_pos), np.array([i, j]), k, adv_pos):
+                            list_step.append(((i, j), k))
+                            count += 1
+                            if count>50:
+                                return list_step
+        return list_step
+
+
+    def precAdvStep(self, board, my_pos, adv_pos):
+        list_step = []
+        board_size = board.shape[0]
+        max_step = (board.shape[0] + 1) // 2
+        x = my_pos[0]
+        y = my_pos[1]
+        lx = 0
+        ux = board_size
+        ly = lx
+        uy = ux
+        if (x - max_step) > 0:
+            lx = x - max_step
+        if (y - max_step) > 0:
+            ly = y - max_step
+        if (x + max_step) < board_size:
+            ux = x + max_step
+        if (y + max_step) < board_size:
+            uy = y + max_step
         for i in range(lx, ux):
             for j in range(ly, uy):
                 if (abs(i - x) + abs(j - y)) <= max_step:
                     for k in range(4):
-                        if self.check_valid_step(board, np.array(my_pos), np.array([i, j]), k, adv_pos):
-                            list_step.append(((i, j), k))
+                        temp=self.checkconnection(board, (i,j) ,k)
+                        if temp:
+                            if self.check_valid_step(board, np.array(my_pos), np.array([i, j]), k, adv_pos):
+                                list_step.append(((i, j), k))
         return list_step
 
-    # find a list of successor board given current board
 
     def choice(self, board, list_step1, adv_pos, my_pos):
         list_utility = [0] * len(list_step1)
@@ -272,7 +305,7 @@ class LinAgent(Agent):
                             list_res[i] = result1
                             break
                         if list_utility[i] != -100 and not list_res[i] and util1 == 0 and not result1:
-                            dangertest = self.all_steps_possible(temp1, mypos1, advpos1)
+                            dangertest = self.all_steps_possible(temp1,   advpos1, mypos1)
                             trap=self.primitive(temp1,dangertest,advpos1)
                             if trap:
                                 list_utility[i] = -100
@@ -311,7 +344,7 @@ class LinAgent(Agent):
                     tmputil = 0
                     simnum = ((board.shape[0] + 1) // 2) ** 2
                     for z in range(simnum // len(list_step1)):
-                        tmputil += 300 * self.strictrandomwalk(temp, mypos1, adv_pos)
+                        tmputil += 300 * self.randomwalk(temp, mypos1, adv_pos)
                         if z > 1 and tmputil < 0:
                             break
                     list_utility[i] = tmputil / (z + 1) + 2 * sqrt(log(z + 1) / (z + 1))
@@ -358,6 +391,7 @@ class LinAgent(Agent):
         move = self.moves[dir]
         board[r + move[0], c + move[1], self.opposites[dir]] = True
         return board
+
     def strictrandomwalk(self, board, my_pos, adv_pos):
         temp = board.copy()
         result = False
@@ -387,6 +421,41 @@ class LinAgent(Agent):
             else:
                 return 0
         return util
+
+    def random_plausible_step(self, board, my_pos, adv_pos):
+        found=False
+        board_size = board.shape[0]
+        max_step = (board.shape[0] + 1) // 2
+        x = my_pos[0]
+        y = my_pos[1]
+        lx = 0
+        ux = board_size-1
+        ly = lx
+        uy = ux
+        if (x - max_step) > 0:
+            lx = x - max_step
+        if (y - max_step) > 0:
+            ly = y - max_step
+        if (x + max_step) < board_size:
+            ux = x + max_step
+        if (y + max_step) < board_size:
+            uy = y + max_step
+        trail=0
+        maxallowable = max_step ** 2 * 2
+        while trail < maxallowable:
+            i=random.randint(lx, ux)
+            j=random.randint(ly, uy)
+            while((abs(i - x) + abs(j - y)) > max_step):
+                i = random.randint(lx, ux)
+                j = random.randint(ly, uy)
+            k = random.randint(0, 3)
+            if self.check_valid_step(board, np.array(my_pos), np.array([i, j]), k, adv_pos):
+                temp=self.set_barrier(board,i,j,k)
+                res, util=self.check_endgame(temp,(i,j),adv_pos)
+                if util>=0:
+                    return ((i, j), k)
+        return ((-1,-1),-1)
+
     def randomwalk(self, board, my_pos, adv_pos):
         temp = board.copy()
         result = False
@@ -395,32 +464,25 @@ class LinAgent(Agent):
         if result:
             return util
         while not result:
-            advposstep = self.all_steps_possible(temp, adv_pos, my_pos)
-            if len(advposstep) > 0:
-                if rec % 2 == 0:
-                    choice1 = self.conscience(temp, advposstep, my_pos)
-                else:
-                    choice1 = random.randint(0, (len(advposstep) - 1))
-                (x, y), dir = advposstep[choice1]
-                temp = self.set_barrier(temp, x, y, dir)
-                adv_pos = (x, y)
-                mysteps = self.all_steps_possible(temp, adv_pos, my_pos)
-                if len(mysteps) > 0:
-                    if rec % 2 == 1:
-                        choice2 = self.conscience(temp, mysteps, my_pos)
-                    else:
-                        choice2 = random.randint(0, (len(mysteps) - 1))
-                    (x1, y1), dir2 = mysteps[choice2]
-                    rec = rec + 1
-                    temp = self.set_barrier(temp, x1, y1, dir2)
-                    my_pos = (x, y)
-                    result, util = self.check_endgame(temp, my_pos, adv_pos)
-                    if result:
-                        return util
-                else:
-                    return 0
-            else:
-                return 0
+            advposstep = self.random_plausible_step(temp, adv_pos, my_pos)
+            (x, y), dir = advposstep
+            if dir==-1:
+                return -1
+            temp = self.set_barrier(temp, x, y, dir)
+            result, util = self.check_endgame(temp, my_pos, adv_pos)
+            if result:
+                return util
+            adv_pos = (x, y)
+            mysteps = self.random_plausible_step(temp, adv_pos, my_pos)
+            (x1, y1), dir2 = mysteps
+            if dir2==-1:
+                return -1
+            rec = rec + 1
+            temp = self.set_barrier(temp, x1, y1, dir2)
+            my_pos = (x1, y1)
+            result, util = self.check_endgame(temp, my_pos, adv_pos)
+            if result:
+                return util
         return util
 
     def findmaxind(selfself, listint):
