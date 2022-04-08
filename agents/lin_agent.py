@@ -1,4 +1,5 @@
 import random
+from copy import deepcopy
 from math import log
 
 import numpy as np
@@ -248,7 +249,7 @@ class LinAgent(Agent):
                 return i
             if util == 0 and result:
                 mustfail = False
-            list_utility[i] = util * 100
+            list_utility[i] = util * 5
             list_res[i] = result
 
         for i in range(len(list_res)):
@@ -291,65 +292,73 @@ class LinAgent(Agent):
         for i in range(len(list_step1)):
             if list_utility[i] == 100:
                 return i
-        if mustfail==False:
-            ran=random.randint(0, (len(list_step1)-1))
-            while list_utility[ran]<0:
-                ran = random.randint(0, (len(list_step1) - 1))
-            return ran
+        # if mustfail==False:
+        #     ran=random.randint(0, (len(list_step1)-1))
+        #     while list_utility[ran]<0:
+        #         ran = random.randint(0, (len(list_step1) - 1))
+        #     return ran
         if mustfail:
             return random.randint(0, (len(list_step1) - 1))
         Rand = True
-        pref = self.preference(board,list_step1, adv_pos, my_pos)
-        if self.findmaxind(pref)==100:
-            for i in range(len(list_step1)):
-                if list_res[i] == False and pref[i] == 100:
-                    (x, y), dir = list_step1[i]
-                    temp = board.copy()
-                    temp = self.set_barrier(temp, x, y, dir)
-                    mypos1 = (x, y)
-                    z = 0
-                    tmputil = 0
-                    simnum = ((board.shape[0] + 1) // 2) ** 2
-                    for z in range(simnum // len(list_step1)):
-                        tmputil += 300 * self.strictrandomwalk(temp, mypos1, adv_pos)
-                        if z > 1 and tmputil < 0:
-                            break
-                    list_utility[i] = tmputil / (z + 1) + 2 * sqrt(log(z + 1) / (z + 1))
-                    print(list_utility[i])
-                    if tmputil >= 0:
-                        mustfail = False
-                    if tmputil > 0:
-                        Rand = False
-        if Rand == False:
-            return self.findmaxid(list_utility)
+        # pref = self.preference(board,list_step1, adv_pos, my_pos)
+        # if self.findmaxind(pref)==100:
+        #     for i in range(len(list_step1)):
+        #         if list_res[i] == False and pref[i] == 100:
+        #             (x, y), dir = list_step1[i]
+        #             temp = board.copy()
+        #             temp = self.set_barrier(temp, x, y, dir)
+        #             mypos1 = (x, y)
+        #             z = 0
+        #             tmputil = 0
+        #             simnum = ((board.shape[0] + 1) // 2) ** 2
+        #             for z in range(simnum // len(list_step1)):
+        #                 tmputil += 10 * self.randomwalk(temp, mypos1, adv_pos)
+        #                 if z > 1 and tmputil < 0:
+        #                     break
+        #             list_utility[i] = tmputil / (z + 1) + 2 * sqrt(log(z + 1) / (z + 1))
+        #             print(list_utility[i])
+        #             if list_utility[i] >= 2:
+        #                 mustfail=False
+        #                 Rand==False
+        # if Rand == False:
+        #     return self.findmaxid(list_utility)
+        qo=[-1000]*len(list_step1)
+        no=[0]*len(list_step1)
+        so=[0]*len(list_step1)
+        count=0
+        steps=(len(list_step1))*15
         for i in range(len(list_step1)):
-            if list_res[i] == False and pref[i] < 0:
+            if list_res[i] == False:
                 (x, y), dir = list_step1[i]
                 temp = board.copy()
                 temp = self.set_barrier(temp, x, y, dir)
                 mypos1 = (x, y)
-                z = 0
-                tmputil = 0
-                simnum = ((board.shape[0] + 1)//2) ** 2
-                for z in range(simnum // len(list_step1)):
-                    tmputil += 300 * self.randomwalk(temp, mypos1, adv_pos)
-                    if z > 1 and tmputil < 0:
-                        break
-                list_utility[i] = tmputil / (z + 1) + 2 * sqrt(log(z + 1) / (z + 1))
-                print(list_utility[i])
-                if tmputil >= 0:
-                    mustfail=False
-                if tmputil > 0:
-                    Rand = False
-        if mustfail:
-            return random.randint(0, (len(list_step1) - 1))
-        if Rand == False:
-            return self.findmaxid(list_utility)
-        else:
-            cos=random.randint(0,(len(list_step1)-1))
-            while list_utility[cos]<0:
-                cos = random.randint(0, (len(list_step1) - 1))
-            return cos
+                no[i]=1
+                count+=1
+                tmputil = 10 * self.randomwalk(temp, mypos1, adv_pos)
+                so[i] =tmputil
+                qo[i] = tmputil / no[i] + 2 * sqrt(log(count) / (no[i]))
+        while count<steps:
+            i=self.findmaxid(qo)
+            (x, y), dir = list_step1[i]
+            temp = board.copy()
+            temp = self.set_barrier(temp, x, y, dir)
+            mypos1 = (x, y)
+            no[i] += 1
+            count += 1
+            tmputil = 10 * self.randomwalk(temp, mypos1, adv_pos)
+            so[i] += tmputil
+            qo[i] = so[i] / no[i] + 2 * sqrt(log(count) / (no[i]))
+        return self.findmaxid(qo)
+        # if mustfail:
+        #     return random.randint(0, (len(list_step1) - 1))
+        # if Rand == False:
+        #     return self.findmaxid(list_utility)
+        # else:
+        #     cos=random.randint(0,(len(list_step1)-1))
+        #     while list_utility[cos]<0:
+        #         cos = random.randint(0, (len(list_step1) - 1))
+        #     return cos
 
     def set_barrier(self, board, r, c, dir):
         # Set the barrier to True
@@ -605,10 +614,8 @@ class LinAgent(Agent):
             mypos1 = (x, y)
             result, util = self.check_endgame(temp, mypos1, adv_pos)
             if util == 1:
-                mustfail = False
                 return False
-            if util == 0 and result:
-                mustfail = False
+            if util == 0:
                 return False
             list_utility[i] = util * 100
             list_res[i] = result
@@ -634,11 +641,29 @@ class LinAgent(Agent):
                         if list_utility[i] != -100 and util1 == 0:
                             list_utility[i] = 0
                     if list_utility[i] >= 0:
-                        mustfail = False
                         return False
-        temp = 0
         for i in range(len(list_step1)):
             if list_utility[i] == 100:
                 return False
         return mustfail
+
+    def random_walk(self, board, my_pos, adv_pos):
+        temp = deepcopy(board)
+        result, util = self.check_endgame(temp, my_pos, adv_pos)
+        while (result != True):
+            myposstep = self.all_steps_possible(temp, my_pos, adv_pos)
+            choice1 = np.random.randint(0, (len(myposstep)-1))
+            (x, y), dir = myposstep[choice1]
+            temp = self.set_barrier(temp, x, y, dir)
+            my_pos = (x, y)
+            result, util = self.check_endgame(temp, my_pos, adv_pos)
+            if (result == True):
+                return util
+            adsteps = self.all_steps_possible(temp, adv_pos, my_pos)
+            choice2 = np.random.randint(0, (len(adsteps)-1))
+            (x, y), dir = adsteps[choice2]
+            temp = self.set_barrier(temp, x, y, dir)
+            adv_pos = (x, y)
+            result, util = self.check_endgame(temp, my_pos, adv_pos)
+        return util
 
