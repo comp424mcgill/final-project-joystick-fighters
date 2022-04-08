@@ -71,11 +71,12 @@ class StudentAgent(Agent):
         list_rm.reverse()
         for k in range(len(list_rm)): # removing losing position
             list_new_board.pop(list_rm[k])
-            list_new_pos.pop(list_rm[k])
-            list_new_dir.pop(list_rm[k])
+            dead_pos = list_new_pos.pop(list_rm[k])
+            dead_dir = list_new_dir.pop(list_rm[k])
         
         if len(list_new_board)==0:
-            print("***WARNING: dead end, will execute random move!***")
+            #print("***WARNING: dead end, we lose!***")
+            return dead_pos, dead_dir
         
         self.center = (self.board_size-1)/2
         
