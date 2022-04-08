@@ -232,7 +232,7 @@ class LinAgent(Agent):
             print('no time')
             return pos, dir
         while (time.time_ns() - start_time) < timeconstraint:
-            i=self.findmaxid(qo)
+            i=maxid
             count += 1
             no[i] += 1
             k = sndlayindex[i]
@@ -275,8 +275,10 @@ class LinAgent(Agent):
                     min[i] = qa[temp]
                 qo[i] = so[i] / no[i] + 10 * sqrt(log(count) / (no[i]))
                 if qo[i] > max:
-                    max = qo[i]
-                    maxid = i
+                    max=qo[i]
+                elif qo[i] < max:
+                    maxid = self.findmaxid(qo)
+                    max=qo[maxid]
         ind=maxid
         bri=0
         if qo[ind]>8:
