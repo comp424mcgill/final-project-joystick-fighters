@@ -80,9 +80,9 @@ class LinAgent(Agent):
         ind1=0
         mustfail = True
         if self.root_node==None:
-            timeconstraint = 29680000000
+            timeconstraint = 29600000000
         else:
-            timeconstraint=1680000000
+            timeconstraint=1600000000
         self.root_node=1
         for i in range(len(list_new_dir)):  # my steps
             result, util = self.check_endgame(list_new_board[i], list_new_pos[i], adv_pos)
