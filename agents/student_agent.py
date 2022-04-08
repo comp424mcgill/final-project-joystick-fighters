@@ -160,9 +160,9 @@ class StudentAgent(Agent):
             #print("Tree root details:")
             #for i in range(len(self.root_node.children)):
                 #print("children num", i, ",visited", self.root_node.children[i].n,",success",self.root_node.children[i].v,",my_pos",self.root_node.children[i].my_pos,",adv_pos",self.root_node.children[i].adv_pos)
-            end_time = time.time()-start_time
-            if end_time>=30.0:
-                print("Time violation, used time:", end_time)
+            #end_time = time.time()-start_time
+            #if end_time>=30.0:
+                #print("Time violation, used time:", end_time)
             return center_pos, center_dir
         else:
             # assume that the tree contains the node that adversary chooses
@@ -252,9 +252,9 @@ class StudentAgent(Agent):
             max_node.parent = None
             self.root_node = max_node
             #print("Max_node v:",self.root_node.v," n:",self.root_node.n," accuracy:",self.root_node.v/self.root_node.n)
-            end_time = time.time()-start_time
-            if (end_time>=2.0):
-                print("Time violation, used time:", end_time)
+            #end_time = time.time()-start_time
+            #if (end_time>=2.0):
+                #print("Time violation, used time:", end_time)
             return max_node.my_pos, max_node.new_dir
 
     
