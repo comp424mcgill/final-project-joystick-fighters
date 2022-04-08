@@ -250,7 +250,7 @@ class MCTS:
                     #tmp.changeMaxStep(self.max_step)
                     while True:
                         output = self.randomstep(tmp)
-                        if output != -1 or output != -2:
+                        if output != -1 and output != -2:
                             return output
                     #return self.randomstep(tmp)
                 #print("MCTS: random child")
