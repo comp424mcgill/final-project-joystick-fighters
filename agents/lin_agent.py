@@ -232,7 +232,7 @@ class LinAgent(Agent):
             print('no time')
             return pos, dir
         while (time.time_ns() - start_time) < timeconstraint:
-            i=maxid
+            i=self.findmaxid(qo)
             count += 1
             no[i] += 1
             k = sndlayindex[i]
@@ -255,8 +255,10 @@ class LinAgent(Agent):
                     minid[i]=j
                 qo[i] = so[i] / no[i] + 10 * sqrt(log(count) / (no[i]))
                 if qo[i] > max:
-                    max = qo[i]
-                    maxid = i
+                    max=qo[i]
+                elif qo[i] < max:
+                    maxid = self.findmaxid(qo)
+                    max=qo[maxid]
             else:
                 j=minid[i]
                 rst = self.rand_simulation(statebranch[j], list_new_pos[k], statepos[j],True,max_step)
@@ -267,7 +269,10 @@ class LinAgent(Agent):
                 qa[j]=sa[j] / na[j] + 10 * sqrt(log(count) / (na[j]))
                 if(qa[j]<min[i]):
                     min[i]=qa[j]
-                    minid[i]=j
+                elif (qa[j] > min[i]):
+                    minid[i] = self.findminid(qa)
+                    temp=minid[i]
+                    min[i] = qa[temp]
                 qo[i] = so[i] / no[i] + 10 * sqrt(log(count) / (no[i]))
                 if qo[i] > max:
                     max = qo[i]
