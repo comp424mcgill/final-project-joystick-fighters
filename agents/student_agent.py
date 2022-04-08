@@ -238,7 +238,7 @@ class StudentAgent(Agent):
             if len(self.root_node.children)>50:
                 idx = np.random.permutation(len(self.root_node))
                 for i in range(len(idx)):
-                    if self.root_node.children[idx[i]].v/(self.root_node.children[idx[o]].n+0.001) > 0.5:
+                    if self.root_node.children[idx[i]].v/(self.root_node.children[idx[i]].n+0.001) > 0.5:
                         max_node = self.root_node.children[idx[i]]
                         break
             else:
