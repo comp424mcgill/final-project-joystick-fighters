@@ -90,8 +90,8 @@ class StudentAgent(Agent):
             if util == 1:
                 pos = list_new_pos[i]
                 dir = list_new_dir[i]
-                print(time.time())
-                print('success')
+                # print(time.time())
+                # print('success')
                 return pos, dir
             if util == 0 and result:
                 mustfail = False
@@ -111,15 +111,15 @@ class StudentAgent(Agent):
                     i = random.randint(0, (ind1))
                 pos = list_new_pos[i]
                 dir = list_new_dir[i]
-                print(time.time())
-                print('no time')
+                # print(time.time())
+                # print('no time')
                 return pos, dir
         if (time.time_ns() - start_time) >= timeconstraint and mustfail:
             i = random.randint((ind1), (len(list_new_dir)-1))
             pos = list_new_pos[i]
             dir = list_new_dir[i]
-            print(time.time())
-            print('no time')
+            # print(time.time())
+            # print('no time')
             return pos, dir
 
         for i in range(len(list_res)):
@@ -144,8 +144,8 @@ class StudentAgent(Agent):
                     if list_utility[i] > 0:
                         pos = list_new_pos[i]
                         dir = list_new_dir[i]
-                        print(time.time())
-                        print('success2')
+                        # print(time.time())
+                        # print('success2')
                         return pos, dir
                     if list_utility[i]==0:
                         mustfail=False
@@ -162,15 +162,15 @@ class StudentAgent(Agent):
                     i = random.randint(0, (ind1))
                 pos = list_new_pos[i]
                 dir = list_new_dir[i]
-                print(time.time())
-                print('no time')
+                # print(time.time())
+                # print('no time')
                 return pos, dir
         if (time.time_ns() - start_time) >= timeconstraint and mustfail:
             i = random.randint((ind1), (len(list_new_dir)-1))
             pos = list_new_pos[i]
             dir = list_new_dir[i]
-            print(time.time())
-            print('no time')
+            # print(time.time())
+            # print('no time')
             return pos, dir
 
         if len(sndlayindex)==0:
@@ -181,8 +181,8 @@ class StudentAgent(Agent):
                 i = random.randint(0, (len(list_new_dir) - 1))
             pos = list_new_pos[i]
             dir = list_new_dir[i]
-            print(time.time())
-            print('fail')
+            # print(time.time())
+            # print('fail')
             return pos, dir
         #self.rand_simulation(board, my_pos, adv_pos, my_turn, max_step)
         qo=[-1000]*len(sndpos)
@@ -227,8 +227,8 @@ class StudentAgent(Agent):
                 bri = sndlayindex[i]
             pos = list_new_pos[bri]
             dir = list_new_dir[bri]
-            print(time.time())
-            print('no time')
+            # print(time.time())
+            # print('no time')
             return pos, dir
         while (time.time_ns() - start_time) < timeconstraint:
             i=self.findmaxid(qo)
@@ -268,8 +268,8 @@ class StudentAgent(Agent):
             bri = sndlayindex[i]
         pos = list_new_pos[bri]
         dir = list_new_dir[bri]
-        print((time.time_ns() - start_time))
-        print('dec')
+        # print((time.time_ns() - start_time))
+        # print('dec')
         return pos, dir
 
     def set_barrier(self, board, r, c, dir):
