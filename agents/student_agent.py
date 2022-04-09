@@ -42,7 +42,7 @@ class StudentAgent(Agent):
         # Moves (Up, Right, Down, Left)
         start_time = time.time_ns()
         (x, y), dir = self.choice(chess_board, adv_pos, my_pos, start_time)
-
+        #print((time.time_ns() - start_time))
         return (x, y), dir
 
     # find all possible steps given current board
